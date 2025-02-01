@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Katalógus</title>
+    <script>
+        async function fetchFiles() {
+            const response = await fetch('/api/files');
+            const files = await response.json();
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            files.forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    ${file.name} 
+                    <a href="/api/files/${file.id}" download>Letöltés</a>
+                    <button onclick="deleteFile('${file.id}')">Törlés</button>
+                `;
+                fileList.appendChild(listItem);
+            });
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            await fetch('/api/files', { method: 'POST', body: formData });
+            fetchFiles();
+        }
+
+        async function deleteFile(fileId) {
+            await fetch(`/api/files/${fileId}`, { method: 'DELETE' });
+            fetchFiles();
+        }
+
+        document.addEventListener("DOMContentLoaded", fetchFiles);
+    </script>
+</head>
+<body>
+    <h1>Katalógus</h1>
+    <input type="file" id="file-input">
+    <button onclick="uploadFile()">Feltöltés</button>
+    <ul id="file-list"></ul>
+</body>
+</html>

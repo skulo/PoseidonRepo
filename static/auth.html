@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bejelentkezés és Regisztráció</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 400px; margin: auto; padding: 20px; }
+        input, button { display: block; width: 100%; margin-top: 10px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Regisztráció</h2>
+        <input type="text" id="register_name" placeholder="Név">
+        <input type="email" id="register_email" placeholder="Email">
+        <input type="password" id="register_password" placeholder="Jelszó">
+        <button onclick="registerUser()">Regisztráció</button>
+        
+        <h2>Bejelentkezés</h2>
+        <input type="email" id="login_email" placeholder="Email">
+        <input type="password" id="login_password" placeholder="Jelszó">
+        <button onclick="loginUser()">Bejelentkezés</button>
+
+        <h2>Felhasználói adatok</h2>
+        <button onclick="getUserData()">Felhasználói adatok lekérése</button>
+        <p id="user_data"></p>
+    </div>
+
+    <script>
+        async function registerUser() {
+            const name = document.getElementById('register_name').value;
+            const email = document.getElementById('register_email').value;
+            const password_hash = document.getElementById('register_password').value;
+            
+            const response = await fetch('http://127.0.0.1:8000/users/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password_hash })
+            });
+            const data = await response.json();
+            alert(data.detail || 'Sikeres regisztráció!');
+        }
+
+        async function loginUser() {
+            const email = document.getElementById('login_email').value;
+            const password = document.getElementById('login_password').value;
+            
+            const response = await fetch('http://127.0.0.1:8000/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ username: email, password })
+            });
+            
+            const data = await response.json();
+            if (data.access_token) {
+                localStorage.setItem('token', data.access_token);
+                alert('Sikeres bejelentkezés!');
+            } else {
+                alert('Hibás bejelentkezési adatok!');
+            }
+        }
+
+        async function getUserData() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Először jelentkezz be!');
+                return;
+            }
+            
+            const response = await fetch('http://127.0.0.1:8000/me', {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await response.json();
+            document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+</html>

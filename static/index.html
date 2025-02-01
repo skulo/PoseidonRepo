@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Felhasználók</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Felhasználók</h1>
+        <table id="user-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Név</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dinamikusan töltjük fel a felhasználókkal -->
+            </tbody>
+        </table>
+        <button onclick="fetchUsers()">Frissítés</button>
+    </div>
+
+    <script>
+        // API hívás a felhasználók lekérésére
+        async function fetchUsers() {
+            const response = await fetch('/users');
+            const users = await response.json();
+            
+            const userTableBody = document.querySelector('#user-table tbody');
+            userTableBody.innerHTML = ''; // Először ürítjük a táblázatot
+
+            // Felhasználók hozzáadása a táblázathoz
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                `;
+                userTableBody.appendChild(row);
+            });
+        }
+
+        // Az adatok lekérése a betöltéskor
+        window.onload = fetchUsers;
+    </script>
+</body>
+</html>
