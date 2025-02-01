@@ -13,7 +13,7 @@ Base = declarative_base()
 class Category(Base):
     __tablename__ = 'categories'
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(String, primary_key=True, nullable=False)
     name = Column(String, nullable=False)
     parent_id = Column(String, ForeignKey('categories.id'), nullable=True)
     parent = relationship('Category', remote_side=[id], backref="subcategories")

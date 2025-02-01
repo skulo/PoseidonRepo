@@ -31,14 +31,13 @@ And put this config into the file (replace the IP address with your EC2 instance
 
 ```
 server {
-    listen 80;   
-    server_name <YOUR_EC2_IP>;    
-    location / {        
-        proxy_pass http://127.0.0.1:8000;    
+    listen 80;
+    server_name <YOUR_EC2_IP>;
+    location / {
+        proxy_pass http://127.0.0.1:8000;
     }
 }
 ```
-
 
 Start NGINX.
 

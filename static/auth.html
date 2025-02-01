@@ -57,6 +57,7 @@
             if (data.access_token) {
                 localStorage.setItem('token', data.access_token);
                 alert('Sikeres bejelentkezés!');
+                window.location.href = "/catalog/catalog.html";
             } else {
                 alert('Hibás bejelentkezési adatok!');
             }

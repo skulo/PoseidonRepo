@@ -114,11 +114,19 @@ def get_user_from_db(email: str, db: Session = SessionLocal()) -> Optional[User]
     db.close()
     return user
 
+def verify_get_user_from_db(email: str, db: Session = SessionLocal()) -> Optional[User]:
+    user = db.query(User).filter(User.email == email).first()
+    user.verified = True
+    db.commit()
+    db.close()
+
+    return True
+
 
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = get_user_from_db(form_data.username)
-    if user is None or not user["verified"]:
+    if user is None or not user.verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -306,13 +314,37 @@ async def upload_file(
 
 
 @app.delete("/delete/{filename}")
-async def delete_file(filename: str) -> Dict[str, str]:
+async def delete_file(
+    filename: str, 
+    current_user: User = Depends(get_current_user),  # Aktuális felhasználó lekérése
+    db: Session = Depends(get_db)
+) -> Dict[str, str]:
+    """
+    Törli a fájlt az S3-ból, ha a felhasználó admin, moderátor, vagy a fájl feltöltője.
+    """
     try:
+        # Dokumentum adatainak lekérése a filename alapján
+        document = db.query(Document).filter(Document.file_path == filename).first()
+        
+        if document is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+        
+        # Jogosultságok ellenőrzése
+        if current_user.role not in ["admin", "moderator"] and current_user.id != document.uploaded_by:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="You do not have permission to delete this file."
+            )
+
         # Fájl törlése az S3-ból
         s3.delete_object(Bucket=S3_BUCKET_NAME, Key=filename)
+        
+        # Válasz visszaadása
         return {"message": f"File {filename} deleted successfully."}
+    
     except Exception as e:
         return {"message": f"Error deleting file: {str(e)}"}
+
     
 
 
@@ -472,13 +504,11 @@ def confirm_verification(
         if not php_result["success"]:
             return {"status": "ERROR", "error_id": "PHP_API_CALL_FAILED"}
         '''
-        user = get_user_from_db(proof.main_param, session)
-        user.verified = True
+        success=verify_get_user_from_db(email=proof.main_param, db=session)
                          
     session.commit()  
     session.close()
 
-    #publish_event_status("VALID", run.id, entity_id, entity_type, proof.main_param, run.verificationTypeCode)
 
     return {"status": "OK"}
 

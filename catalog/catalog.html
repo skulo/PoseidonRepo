@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Catalog</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Document Catalog</h1>
+        <div id="user-info">
+            <span id="username">Logged in as: <strong>Guest</strong></span>
+            <button id="logout" style="display:none;">Log out</button>
+        </div>
+    </header>
+
+    <div id="upload-section">
+        <h2>Upload a New File</h2>
+        <input type="file" id="file-input" />
+        <input type="text" id="title-input" placeholder="Title" />
+        <input type="text" id="description-input" placeholder="Description" />
+        <button id="upload-button" disabled>Upload</button>
+    </div>
+
+    <section id="documents">
+        <h2>Documents</h2>
+        <div id="documents-list"></div>
+    </section>
+
+    <script src="catalog.js"></script>
+</body>
+</html>
