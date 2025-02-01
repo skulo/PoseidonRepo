@@ -23,6 +23,11 @@
         <input type="password" id="login_password" placeholder="Jelszó">
         <button onclick="loginUser()">Bejelentkezés</button>
 
+        <!-- Verifikációs kód megadása -->
+        <h2>Verifikációs Kód</h2>
+        <input type="text" id="verification_code" placeholder="Írd be a kódot">
+        <button onclick="verifyCode()">Verifikálás</button>
+
         <h2>Felhasználói adatok</h2>
         <button onclick="getUserData()">Felhasználói adatok lekérése</button>
         <p id="user_data"></p>
@@ -32,16 +37,60 @@
         async function registerUser() {
             const name = document.getElementById('register_name').value;
             const email = document.getElementById('register_email').value;
-            const password_hash = document.getElementById('register_password').value;
+            const password = document.getElementById('register_password').value;
             
             const response = await fetch('http://127.0.0.1:8000/users/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password_hash })
+                body: JSON.stringify({ name, email, password })
             });
             const data = await response.json();
+            localStorage.setItem('token', data.access_token);
             alert(data.detail || 'Sikeres regisztráció!');
+
         }
+        
+    async function getUserData() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Először jelentkezz be!');
+        return;
+    }
+    
+    const response = await fetch('http://127.0.0.1:8000/me', {
+        method: 'GET',
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await response.json();
+    document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
+    return data;
+
+    }
+
+    async function verifyCode() {
+    const verificationCode = document.getElementById('verification_code').value;
+    
+    const response = await fetch('http://127.0.0.1:8000/confirm?' + new URLSearchParams({
+        entity_type: 'user',
+        entity_id: '20fe58ef-c722-4313-8f17-fa426d4524a0',
+        verification_process: 'EMAIL',
+        code: verificationCode
+    }), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            //'Authorization': 'Bearer ' + token
+        }
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        alert('Sikeres verifikáció!');
+        // További műveletek, pl. átirányítás
+    } else {
+        alert('Hibás verifikációs kód!');
+    }
+}
 
         async function loginUser() {
             const email = document.getElementById('login_email').value;

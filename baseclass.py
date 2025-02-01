@@ -656,3 +656,27 @@ class BaseClass():
             session.close()
 
         return run
+    
+    def get_verification_run_id(self, entity_id: int, session: Optional[Session] = None):
+        """
+        Fetches the verification run by ID and other parameters, with proofs pre-loaded.
+        """
+        b_session_was_opened = False
+        if not session:
+            session = Session(self.engine)
+            b_session_was_opened = True
+            session.begin()
+            session.expire_on_commit = False
+
+        run = session.query(VerificationRun).options(joinedload(VerificationRun.proofs)).filter(
+  
+            
+            VerificationRun.status == "ONGOING",
+            VerificationRun.entityID == entity_id,
+     
+        ).first()
+
+        if b_session_was_opened:
+            session.close()
+
+        return run.id

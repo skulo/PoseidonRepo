@@ -416,7 +416,7 @@ def send_email(recipient_email: str, verification_code: str):
     message["To"] = recipient_email
     message["Subject"] = "Verifikációs kód"
     
-    body = f"A Te verifikációs kódod: {verification_code}"
+    body = f"A Te verifikációs kódod zsuzsi maomiuka cicuka micuka: {verification_code}"
     message.attach(MIMEText(body, "plain"))
 
     # SMTP kapcsolat létrehozása és az email elküldése
@@ -443,7 +443,6 @@ def confirm_verification(
     entity_type: str, 
     entity_id: str, 
     verification_process: str, 
-    verification_run_id: str, 
     code: str,
     request: Request,
     service_provider_id: str = 'VB',
@@ -454,7 +453,7 @@ def confirm_verification(
 
 
     VERIFICATION_EXPIRE_DAYS=5000
-
+    verification_run_id = base.get_verification_run_id(entity_id, session)
 
     run = base.get_verification_run(verification_run_id, service_provider_id, entity_type, entity_id, verification_process, session)
     proof = run.proofs[0]
