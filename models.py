@@ -4,30 +4,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 import uuid
 from datetime import datetime
-import enum
 
 Base = declarative_base()
 
-class RoleEnum(enum.Enum):
-    visitor = "visitor"
-    user = "user"
-    moderator = "moderator"
-    admin = "admin"
 
-class StatusEnum(enum.Enum):
-    pending = "pending"
-    approved = "approved"
-    rejected = "rejected"
 
-class VerificationStatusEnum(enum.Enum):
-    valid = "valid"
-    expired = "expired"
-    revoked = "revoked"
-
-class DocumentStatusEnum(enum.Enum):
-    pending = "pending"
-    approved = "approved"
-    rejected = "rejected"
 
 class Category(Base):
     __tablename__ = 'categories'
@@ -44,7 +25,7 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    role = Column(Enum(RoleEnum), nullable=False)
+    role = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     verified = Column(Boolean, default=False)
 
@@ -57,7 +38,7 @@ class Document(Base):
     description = Column(Text, nullable=False)
     file_path = Column(String, nullable=False)
     uploaded_by = Column(String, ForeignKey('users.id'), nullable=False)
-    status = Column(Enum(DocumentStatusEnum), nullable=False)
+    status = Column(String, nullable=False)
     category_id = Column(String, ForeignKey('categories.id'), nullable=False)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
 
@@ -67,7 +48,7 @@ class ModerationLog(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     document_id = Column(String, ForeignKey('documents.id'), nullable=False)
     moderator_id = Column(String, ForeignKey('users.id'), nullable=False)
-    decision = Column(Enum(DocumentStatusEnum), nullable=False)
+    decision = Column(String, nullable=False)
     reason = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

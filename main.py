@@ -3,7 +3,7 @@ import json
 import os
 from typing import Dict, List, Literal, Optional
 from uuid import uuid4
-from fastapi import FastAPI, File, HTTPException, UploadFile, Depends, status
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +15,11 @@ from models import SessionLocal, User, Document, Category
 from sqlalchemy.orm import Session, Query
 from passlib.context import CryptContext
 from jose import JWTError, jwt
+from baseclass import BaseClass
+from models import VerificationRun, Verification, Proof, EmailProof, VerificationRunDuplicate
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -159,9 +164,82 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
 
+    base = BaseClass()
+
+    run_duplicate=base.is_run_duplicate(entity_id=db_user.id, verification_process="EMAIL", session=db)
+
+    if run_duplicate!="":
+        new_duplicate_run = VerificationRunDuplicate(
+            id=f"verification_verificationrunduplicate_{uuid.uuid4()}",
+            serviceProviderID="VB",
+            verificationTypeCode="EMAIL",
+            entityType=db_user.role,
+            entityID=db_user.id,
+            verificationProcessCode="EMAIL",
+            originalVerificationRunID=run_duplicate
+        )
+        base.create_verification_run_duplicate(new_duplicate_run)
+        return {"status": "DUPLICATE_RUN_FOUND"}
     
+    VERIFICATION_EXPIRE_DAYS=5000
+    CODE_LENGTH=6
+    TRY_EXPIRE_HOURS=24
+    MAX_RRETRY_PROCESS=3
+    MAX_RETRY_PROCESS_WAIT_TIME_MINUTES=3
+    MAX_RETRY_PROCESS_METHOD="EXPONENTIAL"
+    MAX_RETRY=3
 
+    new_run = VerificationRun(
+            id=f"verification_verificationrun_{uuid.uuid4()}",
+            serviceProviderID="VB",
+            verificationProcessCode="EMAIL",
+            entityType=db_user.role,
+            entityID=db_user.id,
+            verificationTypeCode="EMAIL",
+            status="ONGOING",
+            vendor_status="PENDING",
+            fail_reason="",
+            try_count=0,
+            effective_date=datetime.now(),
+            expiration_date=datetime.now() + timedelta(hours=TRY_EXPIRE_HOURS),
+            remaining_tries=MAX_RETRY
+        )
 
+    created_run = base.create_verification_run(new_run, session=db)
+
+    prefix = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+
+    verification_code = ''.join([str(random.randint(0, 9)) for _ in range(CODE_LENGTH)])
+
+    new_proof = EmailProof(
+        id=f"verification_proof_{uuid.uuid4()}",
+        verificationRunID=created_run.id,
+        main_param=db_user.email,
+        verification_code=verification_code,
+        uploadDate=datetime.now(),
+        expirationDate=datetime.now() + timedelta(hours=TRY_EXPIRE_HOURS),
+        entityType=db_user.role,
+        entityID=db_user.id,
+        prefix=prefix,
+        ip_address="",
+        correct_code_submission_time=None,
+        status="PENDING"
+    )
+    created_proof=base.create_proof(new_proof, session=db)
+
+    proof = created_run.proofs[0]
+
+    phoneresult=base.email_duplicate_check(db_user.id, email=db_user.id, session=db)
+    if phoneresult=="":
+        #base.update_proof_status(proof=proof, new_status="PENDING", main_param=normalized_phone, session=session)
+        proof.status="PENDING"
+        proof.main_param=db_user.email
+
+    #send email to address
+    #send_email(db_user.email, verification_code)
+    verification_code = prefix + "-" +verification_code
+    send_email(db_user.email, verification_code)
+    "EMAIL SENT"
     return db_user
 
 @app.get("/users/{user_id}", response_model=UserResponse)
@@ -281,3 +359,154 @@ async def get_files(db: Session = Depends(get_db)):
         }
         for doc in documents
     ]
+
+
+
+def send_email(recipient_email: str, verification_code: str):
+    sender_email = "poseidongg.noreply@gmail.com"  # A Te email címed
+    sender_password = "opst qfmv gwzb lhxa"  # Az email jelszavad
+
+    # SMTP beállítások
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587  # Vagy 465 a SSL-hez
+
+    # Email üzenet készítése
+    message = MIMEMultipart()
+    message["From"] = sender_email
+    message["To"] = recipient_email
+    message["Subject"] = "Verifikációs kód"
+    
+    body = f"A Te verifikációs kódod: {verification_code}"
+    message.attach(MIMEText(body, "plain"))
+
+    # SMTP kapcsolat létrehozása és az email elküldése
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()  # TLS titkosítás engedélyezése
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, message.as_string())
+        print(f"Email sikeresen elküldve {recipient_email} címre.")
+    except Exception as e:
+        print(f"Az email küldésének hibája: {str(e)}")
+
+
+
+
+class ConfirmationResponse(BaseModel):
+    status: str
+    error_id: Optional[str] = None
+
+
+
+@app.post("/confirm", response_model=ConfirmationResponse)
+def confirm_verification(
+    entity_type: str, 
+    entity_id: str, 
+    verification_process: str, 
+    verification_run_id: str, 
+    code: str,
+    request: Request,
+    service_provider_id: str = 'VB',
+    session: Session = Depends(get_db)
+):
+    base = BaseClass()
+
+
+
+    VERIFICATION_EXPIRE_DAYS=5000
+
+
+    run = base.get_verification_run(verification_run_id, service_provider_id, entity_type, entity_id, verification_process, session)
+    proof = run.proofs[0]
+
+
+    if run.status=='ONGOING':
+        user_ip = request.client.host
+
+        proof.ip_address = user_ip
+
+        if not run or proof.verification_code != code:
+            
+            run.remaining_tries -= 1
+            base.update_verification_status(verification_run=run, new_status="FAILED" if run.remaining_tries <= 0 else run.status, session=session)
+
+            if run.remaining_tries <= 0:
+                #base.update_proof_status(proof, "REJECTED", datetime.now(), datetime.now() + timedelta(days=365), session)
+                proof.status = "REJECTED"
+                run.fail_reason = "TOO_MANY_TRIES"
+                session.commit()  
+                session.close()
+                return {"status": "ERROR", "error_id": "TOO_MANY_TRIES"}
+
+
+            session.commit()  
+            session.close()
+
+            return {"status": "ERROR", "error_id": "BAD_CODE"}
+        
+        proof.correct_code_submission_time=datetime.now()
+        base.update_verification_status(run, new_status="FINISHED", session=session)
+        #base.update_proof_status(proof, "APPROVED", datetime.now(), datetime.now() + timedelta(days=365), session)
+        proof.status = "APPROVED"
+        proof.expirationDate = datetime.now() + timedelta(days=VERIFICATION_EXPIRE_DAYS)
+
+        verification_data = {
+
+            "serviceProviderID": run.serviceProviderID,
+            "verificationTypeCode": run.verificationTypeCode,
+            "verificationProcessCode": run.verificationProcessCode,
+            "verificationRunID": run.id,
+            "entityType": entity_type,
+            "entityID": entity_id,
+            "status": "VALID",
+            "effective_date": datetime.now(),
+            "expiration_date": datetime.now() + timedelta(days=VERIFICATION_EXPIRE_DAYS),
+            "data": {"email": proof.main_param}
+        }
+        base.create_verification(verification_data, session)
+
+        '''
+        # Call PHP setLevelFromVerification API
+        php_result = call_php_api_set_level(entity_id, "PHONE", True)
+
+        if not php_result["success"]:
+            return {"status": "ERROR", "error_id": "PHP_API_CALL_FAILED"}
+        '''
+        user = get_user_from_db(proof.main_param, session)
+        user.verified = True
+                         
+    session.commit()  
+    session.close()
+
+    #publish_event_status("VALID", run.id, entity_id, entity_type, proof.main_param, run.verificationTypeCode)
+
+    return {"status": "OK"}
+
+class CancelVerificationResponse(BaseModel):
+    status: str
+    error_id: str = None
+
+@app.post("/cancel", response_model=CancelVerificationResponse)
+def cancel_verification(
+    entityType: str, 
+    entityID: str, 
+    verification_process: str, 
+    verificationRunID: str,
+    serviceProviderID: str = 'VB',
+    session: Session = Depends(get_db)
+):
+    base = BaseClass()
+
+
+    run = base.get_verification_run(verificationRunID, serviceProviderID, entityType, entityID, verification_process, session)
+    
+    if not run or run.status != "ONGOING":
+        return CancelVerificationResponse(status="ERROR", error_id="INVALID_VERIFICATION")
+
+    base.update_verification_status(verification_run=run, new_status='CANCELLED', session=session)
+    base.delete_proof(run.id, session)
+
+    session.commit()  
+    session.close()
+
+    return CancelVerificationResponse(status="OK")
