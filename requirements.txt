@@ -12,3 +12,4 @@ bcrypt
 passlib
 email-validator
 secure-smtplib
+boto3
