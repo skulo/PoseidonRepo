@@ -3,7 +3,7 @@ import json
 import os
 from typing import Dict, List, Literal, Optional
 from uuid import uuid4
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Depends, status
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -73,6 +73,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/catalog", StaticFiles(directory="catalog"), name="catalog")
 
 handler = Mangum(app)
 # A token generálása
@@ -276,15 +277,17 @@ s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_k
 @app.post("/upload/")
 async def upload_file(
     file: UploadFile = File(...), 
-    title: str = "Untitled", 
-    description: str = "", 
-    category_id: str = "", 
-    uploaded_by: str = "", 
+    title: str = Form(""), 
+    description: str = Form(""), 
+    category_id: str = Form(""), 
+    uploaded_by: str = Form(""), 
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
     Feltölti a fájlt az S3-ba és elmenti a dokumentum adatait az adatbázisba.
     """
+    print(f"Category ID: {category_id}, Uploaded By: {uploaded_by}")
+
 
     # Fájl feltöltése az S3-ba
     s3.upload_fileobj(file.file, S3_BUCKET_NAME, file.filename)
@@ -309,25 +312,28 @@ async def upload_file(
         "document_id": new_document.id,
         "title": new_document.title,
         "description": new_document.description,
+        "uploaded_by": new_document.uploaded_by,
         "uploaded_at": new_document.uploaded_at.isoformat(),
     }
 
 
 @app.delete("/delete/{filename}")
 async def delete_file(
-    filename: str, 
+    filename: str= "", 
     current_user: User = Depends(get_current_user),  # Aktuális felhasználó lekérése
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
     Törli a fájlt az S3-ból, ha a felhasználó admin, moderátor, vagy a fájl feltöltője.
     """
+    print("DEBUG: Deleting file...")
     try:
         # Dokumentum adatainak lekérése a filename alapján
-        document = db.query(Document).filter(Document.file_path == filename).first()
+        file_path="https://poseidonb.s3.eu-north-1.amazonaws.com/"+filename
+        document = db.query(Document).filter(Document.file_path == file_path).first()
         
         if document is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not founddd.")
         
         # Jogosultságok ellenőrzése
         if current_user.role not in ["admin", "moderator"] and current_user.id != document.uploaded_by:
@@ -337,8 +343,10 @@ async def delete_file(
             )
 
         # Fájl törlése az S3-ból
-        s3.delete_object(Bucket=S3_BUCKET_NAME, Key=filename)
-        
+        response = s3.delete_object(Bucket=S3_BUCKET_NAME, Key=filename)
+        print(f"DEBUG: S3 delete response: {response}")
+        db.delete(document)
+        db.commit()
         # Válasz visszaadása
         return {"message": f"File {filename} deleted successfully."}
     
@@ -384,7 +392,7 @@ async def get_files(db: Session = Depends(get_db)):
             "id": doc.id,
             "title": doc.title,
             "description": doc.description,
-            "file_url": doc.file_path,
+            "file_path": doc.file_path,
             "uploaded_at": doc.uploaded_at.isoformat(),
             "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",
             "download_url": f"/download/{doc.file_path.split('/')[-1]}",
@@ -540,3 +548,4 @@ def cancel_verification(
     session.close()
 
     return CancelVerificationResponse(status="OK")
+

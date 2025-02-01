@@ -51,14 +51,39 @@ async function loadDocuments() {
         downloadButton.onclick = () => window.location.href = doc.download_url;
 
         docActions.appendChild(downloadButton);
+        //const user_data = getUserData();
+        //const userId = user_data.id;
 
-        if (isAdminOrModerator || doc.uploaded_by === username) {
+        //if (isAdminOrModerator || doc.uploaded_by === username) {
             const deleteButton = document.createElement('button');
             deleteButton.innerText = 'Delete';
             deleteButton.className = 'delete-button';
-            deleteButton.onclick = () => deleteFile(doc.file_path);
+           // console.log("Uploaded by:", doc.file_path);
+           deleteButton.onclick = async () => {
+            try {
+                const response = await fetch(doc.delete_url, {
+                    method: 'DELETE',  // Itt biztosítjuk, hogy DELETE kérés legyen
+                    headers: {
+                        'Authorization': `Bearer ${token}`,  // Ha szükséges, hozzáadhatod a token-t
+                    },
+                });
+        
+                if (response.ok) {
+                    console.log("File deleted successfully.");
+                    loadDocuments();  // Újratöltjük a dokumentumokat
+                } else {
+                    const errorResponse = await response.json();
+                    console.error("Failed to delete file:", errorResponse.detail);
+                }
+            } catch (error) {
+                console.error("Error during delete request:", error);
+            }
+        };
+        
+        
+        
             docActions.appendChild(deleteButton);
-        }
+        //}
 
         docCard.appendChild(docInfo);
         docCard.appendChild(docActions);
@@ -69,7 +94,16 @@ async function loadDocuments() {
 
 // Törlés gomb funkció
 async function deleteFile(filePath) {
-    const response = await fetch(`/delete/${filePath}`, {
+    console.log("File path received in deleteFile:", filePath);
+    //const fileName = new URL(filePath).pathname.split('/').pop();
+    const fileName = filePath.split('/').pop();
+    console.log("Extracted fileName:", fileName); 
+    //console.log(fileName);
+
+    const deleteUrl = `/delete/${filePath}`;
+    console.log("Delete request URL:", deleteUrl);
+
+    const response = await fetch(`/delete/${fileName}`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -83,16 +117,51 @@ async function deleteFile(filePath) {
     }
 }
 
+async function getUserData() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Először jelentkezz be!');
+        return;
+    }
+    
+    const response = await fetch('http://127.0.0.1:8000/me', {
+        method: 'GET',
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await response.json();
+    document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
+    return data;
+
+}
+
 // Feltöltési funkció
 document.getElementById('upload-button').addEventListener('click', async () => {
     const file = document.getElementById('file-input').files[0];
     const title = document.getElementById('title-input').value;
     const description = document.getElementById('description-input').value;
 
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Nincs bejelentkezve felhasználó');
+        return null;
+    }
+
+    const user_data = await getUserData();
+    const userId = user_data.id;
     const formData = new FormData();
+    formData.append('uploaded_by', userId);
     formData.append('file', file);
     formData.append('title', title);
     formData.append('description', description);
+    formData.append('category_id', "1");
+    
+
+
+    // Debug log a formData tartalmához
+    formData.forEach((value, key) => {
+        console.log(key + ": " + value);
+    });
 
     const response = await fetch('/upload/', {
         method: 'POST',
