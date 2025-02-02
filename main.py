@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from sqlite3 import IntegrityError
@@ -474,8 +474,16 @@ def confirm_verification(
 
     verification_run_id = base.get_verification_run_id(entity_id, session)
 
+
+    
     run = base.get_verification_run(verification_run_id, service_provider_id, entity_type, entity_id, verification_process, session)
+
+    if run.status=='FAILED':
+        return {"status": "ERROR", "error_id": "FAILED_VERIFICATION. CREATE NEW ACCOUNT"}
+
+
     proof = run.proofs[0]
+
 
 
     if run.status=='ONGOING':
@@ -566,4 +574,117 @@ def cancel_verification(
     session.close()
 
     return CancelVerificationResponse(status="OK")
+
+
+def calculate_linear_wait_time(attempt_number: int, waitMinutes: int) -> timedelta:
+    return timedelta(minutes=waitMinutes)
+
+def calculate_exponential_wait_time(attempt_number: int, waitMinutes: int) -> timedelta:
+    return timedelta(minutes=waitMinutes ** (attempt_number + 1))
+
+@app.post("/resend")
+def resend_code(
+    entity_type: str, 
+    entity_id: str, 
+    verification_process: str = "EMAIL", 
+    service_provider_id: str = 'VB',
+    session: Session = Depends(get_db),
+    method="exponential"):
+
+    base = BaseClass()
+    current_timestamp = datetime.now(timezone.utc)  
+
+
+    CODE_LENGTH=6
+    MAX_RETRY_PROCESS=3
+    MAX_RETRY_PROCESS_WAIT_TIME_MINUTES=1
+    MAX_RETRY_PROCESS_METHOD="linear"
+
+    try:
+        session.begin()
+        
+        verification_run_id = base.get_verification_run_id(entity_id, session)
+        
+        
+        print(f"DEBUG: verification_run_id={verification_run_id}")
+
+        if verification_run_id is None:
+            return {"error": "No verification run found for given entity_id"}
+        
+        verification_run = base.get_verification_run(
+            verification_run_id, service_provider_id, entity_type, entity_id, 
+            verification_process, session
+        )
+
+        if verification_run.status != "ONGOING":
+            return {"error": "VERIFICATION_RUN_NOT_ONGOING"}
+        
+        proof = verification_run.proofs[0]
+        
+        if verification_run.try_count >= MAX_RETRY_PROCESS:
+            return {"error": "MAX_RESEND_ATTEMPTS_REACHED"}
+        
+        if verification_run.last_try_timestamp:
+            if MAX_RETRY_PROCESS_METHOD == "linear":
+                wait_time = calculate_linear_wait_time(verification_run.try_count, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+            elif MAX_RETRY_PROCESS_METHOD == "exponential":
+                wait_time = calculate_exponential_wait_time(verification_run.try_count, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+            else:
+                return {"error": "Invalid method."}
+            
+            next_resend_time = verification_run.last_try_timestamp + wait_time  
+            
+            if verification_run.try_count != 0:
+                if method == "linear":
+                    wait_time_last = calculate_linear_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+                elif method == "exponential":
+                    wait_time_last = calculate_exponential_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+
+                last_next_resend_time = verification_run.last_try_timestamp + wait_time_last
+
+                if current_timestamp < last_next_resend_time:
+                    return {"error": f"NEXT_RESEND_AVAILABLE_AT {last_next_resend_time}"}
+        
+        verification_run.try_count += 1
+        
+        old_prefix = proof.prefix
+        old_verification_code = proof.verification_code
+
+        while True:
+            new_prefix = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+            new_verification_code = ''.join([str(random.randint(0, 9)) for _ in range(CODE_LENGTH)])
+            
+            if new_prefix != old_prefix and new_verification_code != old_verification_code:
+                break
+
+        verification_run.last_try_timestamp = current_timestamp
+        proof.prefix = new_prefix
+        proof.verification_code = new_verification_code
+        #send code to phone number
+
+
+                #send email to address
+        #send_email(db_user.email, verification_code)
+
+        send_email(proof.main_param, new_verification_code)
+
+        session.commit()
+
+
+
+
+
+        next_resend_time = current_timestamp + wait_time
+        if verification_run.try_count >= MAX_RETRY_PROCESS:
+            return {
+                "prefix": new_prefix,
+                "status": "MAX_RESEND_ATTEMPTS_REACHED",
+            }
+        return {
+            "prefix": new_prefix,
+            "next_resend_time": next_resend_time
+        }
+
+    finally:
+        session.close()
 

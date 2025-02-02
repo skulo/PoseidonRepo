@@ -42,6 +42,10 @@
         <h2>Verifikációs Kód</h2>
         <input type="text" id="verification_code" placeholder="Írd be a kódot">
         <button onclick="event.preventDefault(); verifyCode()">Verifikálás</button>
+        <br>
+        <button onclick="event.preventDefault(); resendVerificationCode()">Kód újraküldése</button>
+        <p id="next_resend_time"></p>
+
       </div>
     
     </form>

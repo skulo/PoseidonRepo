@@ -669,12 +669,14 @@ class BaseClass():
             session.expire_on_commit = False
 
         run = session.query(VerificationRun).options(joinedload(VerificationRun.proofs)).filter(
-            VerificationRun.status == "ONGOING",
             VerificationRun.entityID == entity_id,  
         ).first()
 
+
+        
+
         if not run:
-            print(f"VerificationRun not found for entity_id: {entity_id}")
+            print(f"VerificationRun id not found for entity_id: {entity_id}")
             return None
 
         if b_session_was_opened:

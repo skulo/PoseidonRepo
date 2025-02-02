@@ -147,7 +147,12 @@ async function verifyCode() {
   const data = await response.json();
 
   if (response.ok) {
+    if(data.error_id){
+      alert(data.error_id || 'Hiba történt az újraküldés során!');
+    }
+    else{
       alert('Sikeres verifikáció! Átirányítás a catalog oldalra.');
+    
 
       const response = await fetch('http://127.0.0.1:8000/token', {
       method: 'POST',
@@ -163,11 +168,63 @@ async function verifyCode() {
   } else {
       alert('Hibás átirányítás!');
   }
-
+}
   } else {
-      alert('Hibás verifikációs kód!');
+      alert('Nem ok a response');
   }
 }
+
+async function resendVerificationCode() {
+  const email = localStorage.getItem('verification_email');
+  const entityId = localStorage.getItem('verification_entity_id');
+  console.log(email, entityId)
+  if (!email || !entityId) {
+      alert('Hiba: nincs érvényes regisztrációs adat!');
+      return;
+  }
+
+  try {
+    const response = await fetch('http://127.0.0.1:8000/resend?' + new URLSearchParams({
+      entity_type: 'user',
+      entity_id: entityId,
+      verification_process: 'EMAIL'
+  }), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+  });
+
+      const data = await response.json();
+
+      if (response.ok) {
+
+          if(data.error){
+            alert(data.error || 'Hiba történt az újraküldés során!');
+          }
+          else{
+            alert('Az új verifikációs kód elküldve az email címedre!');
+          }
+          
+      } else {
+          alert(data.error || 'Hiba történt az újraküldés során!');
+      }
+
+  } catch (error) {
+      console.error('Hiba történt:', error);
+      alert('Hálózati hiba! Próbáld újra később.');
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 async function loginUser() {
   const email = document.getElementById('login_email').value;
@@ -210,3 +267,6 @@ async function getUserData() {
   const data = await response.json();
   document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
 }
+
+
+
