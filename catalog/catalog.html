@@ -9,6 +9,12 @@
 <body>
     <header>
         <h1>Document Catalog</h1>
+
+        <div id="nav-links">
+            <a href="/static/auth.html" id="auth-link" style="display: none;">Bejelentkezés / Regisztráció</a>
+        </div>
+
+
         <div id="user-info">
             <span id="username">Logged in as: <strong><script></script></strong></span>
             <button id="logout" style="display:none;">Log out</button>
@@ -38,6 +44,22 @@
     <button onclick="getUserData()">Felhasználói adatok lekérése</button>
     <p id="user_data"></p>
 <script>
+    window.onload = async function() {
+            const token = localStorage.getItem('token');
+        if (!token) {
+            if (!token) {
+                document.getElementById('auth-link').style.display = 'block';
+            return;
+        }
+            }
+        
+        const response = await fetch('http://127.0.0.1:8000/me', {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        };
+
+
     async function getUserData() {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -53,6 +75,8 @@
         document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
         return data;
     }
+
+    
 </script>
 
 

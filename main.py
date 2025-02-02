@@ -453,6 +453,8 @@ def confirm_verification(
 
 
     VERIFICATION_EXPIRE_DAYS=5000
+    print(f"DEBUG: entity_id={entity_id}")
+
     verification_run_id = base.get_verification_run_id(entity_id, session)
 
     run = base.get_verification_run(verification_run_id, service_provider_id, entity_type, entity_id, verification_process, session)
