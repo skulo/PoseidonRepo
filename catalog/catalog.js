@@ -61,6 +61,8 @@ async function loadDocuments(categoryId = null) {
                 const editButton = document.createElement('button');
                 editButton.innerText = 'Edit';
                 editButton.className = 'edit-button';
+
+                
                 editButton.onclick = async () => {
                     const title = doc.title;
                     const description = doc.description
@@ -78,17 +80,7 @@ async function loadDocuments(categoryId = null) {
     
     
                     const fileInput = document.getElementById('edit-file-input');
-                    fileInput.click();  // Ez megnyitja a fájlválasztó ablakot
-    
-                    // Miután a felhasználó fájlt választott
-                    fileInput.onchange = async (event) => {
-                        const fileNew = event.target.files[0]; // Az első kiválasztott fájl
-                        if (!fileNew) {
-                            alert('Kérlek válassz fájlt!');
-                            return;
-                        }
-                    }
-    
+                    const fileNew = fileInput.files[0];
                     const formData = new FormData();
                     formData.append('uploaded_by', userId);
                     formData.append('file', fileNew);
@@ -105,17 +97,12 @@ async function loadDocuments(categoryId = null) {
                         body: formData
                     });
                     const data = await response.json();
+                    console.log("Edit upload response:", data);
                     if (data.message === 'File is uploaded successfully.') {
                         alert('File is uploaded successfully.');
-                        loadDocuments(selectedCategoryId);
-                        return;
                     }
                     if (data.message === 'File is uploaded successfully, and is waiting for approval.') {
                         alert('File is uploaded successfully, and is waiting for approval.');
-                        loadDocuments(selectedCategoryId);
-                        return;
-                    } else {
-                        alert('Upload failed');
                     }
     
     
