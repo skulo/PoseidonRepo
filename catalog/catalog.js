@@ -2,7 +2,7 @@
 let token = localStorage.getItem('token');
 let username = localStorage.getItem('username');
 let isAdminOrModerator = false;
-
+let selectedCategoryId = 1;
 
 // Kilépés gomb funkció
 //document.getElementById('logout').addEventListener('click', () => {
@@ -17,12 +17,15 @@ document.getElementById('file-input').addEventListener('change', () => {
 });
 
 // Dokumentumok betöltése
-async function loadDocuments() {
-    const response = await fetch('/files');
+async function loadDocuments(categoryId = null) {
+    selectedCategoryId = categoryId;
+    const url = categoryId ? `/files/${categoryId}` : '/files';  // Ha van categoryId, az adott kategóriát töltjük be
+    const response = await fetch(url);
     const documents = await response.json();
 
     const documentsList = document.getElementById('documents-list');
     documentsList.innerHTML = ''; // Törlés a régi listáról
+
 
     documents.forEach(async doc => {
         if (doc.status === 'approved') {
@@ -62,7 +65,7 @@ async function loadDocuments() {
             
                     if (response.ok) {
                         console.log("File deleted successfully.");
-                        loadDocuments();  // Újratöltjük a dokumentumokat
+                        loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
                     } else {
                         const errorResponse = await response.json();
                         console.error("Failed to delete file:", errorResponse.detail);
@@ -87,26 +90,23 @@ async function loadDocuments() {
 
 // Törlés gomb funkció
 async function deleteFile(filePath) {
-    console.log("File path received in deleteFile:", filePath);
-    //const fileName = new URL(filePath).pathname.split('/').pop();
-    const fileName = filePath.split('/').pop();
-    console.log("Extracted fileName:", fileName); 
-    //console.log(fileName);
+    try {
+        const response = await fetch(doc.delete_url, {
+            method: 'DELETE',  // Itt biztosítjuk, hogy DELETE kérés legyen
+            headers: {
+                'Authorization': `Bearer ${token}`,  // Ha szükséges, hozzáadhatod a token-t
+            },
+        });
 
-    const deleteUrl = `/delete/${filePath}`;
-    console.log("Delete request URL:", deleteUrl);
-
-    const response = await fetch(`/delete/${fileName}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`
+        if (response.ok) {
+            console.log("File deleted successfully.");
+            loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
+        } else {
+            const errorResponse = await response.json();
+            console.error("Failed to delete file:", errorResponse.detail);
         }
-    });
-
-    if (response.ok) {
-        loadDocuments();
-    } else {
-        alert('Failed to delete file');
+    } catch (error) {
+        console.error("Error during delete request:", error);
     }
 }
 
@@ -149,7 +149,7 @@ document.getElementById('upload-button').addEventListener('click', async () => {
     formData.append('title', title);
     formData.append('description', description);
     formData.append('role', role);
-    formData.append('category_id', "1");
+    formData.append('category_id', selectedCategoryId);
     
 
 
@@ -169,12 +169,12 @@ document.getElementById('upload-button').addEventListener('click', async () => {
     const data = await response.json();
     if (data.message === 'File is uploaded successfully.') {
         alert('File is uploaded successfully.');
-        loadDocuments();
+        loadDocuments(selectedCategoryId);
         return;
     }
     if (data.message === 'File is uploaded successfully, and is waiting for approval.') {
         alert('File is uploaded successfully, and is waiting for approval.');
-        loadDocuments();
+        loadDocuments(selectedCategoryId);
         return;
     } else {
         alert('Upload failed');
@@ -182,4 +182,8 @@ document.getElementById('upload-button').addEventListener('click', async () => {
 });
 
 // Dokumentumok betöltése az oldal betöltésekor
-loadDocuments();
+loadDocuments(selectedCategoryId);
+
+
+
+

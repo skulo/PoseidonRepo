@@ -9,10 +9,24 @@
 <body>
     <header>
         <nav class="navbar">
+
+            <div class="dropdown">
+                <button class="dropbtn">Kategóriák
+                  <i class="fa fa-caret-down"></i>
+                </button>
+                <div class="dropdown-content">
+                    <div class="header">
+                      <h2>Mega Menu</h2>
+                    </div>
+                    <div class="row" id="category-container">
+                      <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
+                    </div>
+                  </div>
+              </div>
+
+
           <div class="navbar-container">
-            <a href="/" class="navbar-logo">
-              <img src="logo.png" alt="Poseidon Logo" />
-            </a>
+
             <ul class="navbar-links">
               <li><a href="/catalog/catalog.html">Katalógus</a></li>
               <li><a href="/products">Products</a></li>
@@ -45,7 +59,9 @@
 
     <section id="documents">
         <h2>Documents</h2>
-        <div id="documents-list"></div>
+        <div id="documents-list">
+
+        </div>
     </section>
 
     <script src="catalog.js"></script>
@@ -90,7 +106,62 @@
         return data;
     }
 
+ // Dinamikus kategória betöltés
+async function loadCategories() {
+    const response = await fetch('http://127.0.0.1:8000/categories');
+    const categories = await response.json();
+
+    const categoryContainer = document.getElementById('category-container');
+
+    categories.forEach(category => {
+        const categoryColumn = document.createElement('div');
+        categoryColumn.classList.add('column');
+
+        const categoryTitle = document.createElement('h3');
+        categoryTitle.textContent = category.name;
+        categoryColumn.appendChild(categoryTitle);
+
+        category.children.forEach(subcategory => {
+            const subcategoryLink = document.createElement('a');
+            subcategoryLink.href = "#";
+            subcategoryLink.textContent = subcategory.name;
+            
+            // Eseménykezelő hozzáadása, hogy betöltsük az adott kategóriához tartozó fájlokat
+            subcategoryLink.onclick = async (e) => {
+                const dropdownContent = document.querySelector('.dropdown-content');
+                dropdownContent.style.display = dropdownContent.style.display === 'none' || dropdownContent.style.display === '' ? 'block' : 'none';
+                e.preventDefault();
+                await loadDocuments(subcategory.id);  // Az alábbi kódban ezt a category_id-t használjuk
+            };
+
+            categoryColumn.appendChild(subcategoryLink);
+        });
+
+        categoryContainer.appendChild(categoryColumn);
+    });
+}
     
+
+        window.onload = loadCategories; // Kategóriák betöltése oldal betöltésekor
+
+
+// Dropdown gombra hover eseményfigyelő hozzáadása
+document.querySelector('.dropbtn').addEventListener('mouseenter', () => {
+    const dropdownContent = document.querySelector('.dropdown-content');
+    dropdownContent.style.display = 'block';  // Hoverkor megjelenítjük
+});
+
+document.querySelector('.dropdown-content').addEventListener('mouseenter', () => {
+    const dropdownContent = document.querySelector('.dropdown-content');
+    dropdownContent.style.display = 'block';  // Hoverkor megjelenítjük
+});
+
+// Dropdown gombra hoverről való eltávolítás (mouseleave)
+document.querySelector('.dropbtn').addEventListener('mouseleave', () => {
+    const dropdownContent = document.querySelector('.dropdown-content');
+    dropdownContent.style.display = 'none';  // Hover elhagyásakor eltüntetjük
+});
+
 </script>
 
 
