@@ -19,6 +19,7 @@ document.getElementById('file-input').addEventListener('change', () => {
 // Dokumentumok betöltése
 async function loadDocuments(categoryId = null) {
     selectedCategoryId = categoryId;
+    console.log("Selected category ID:", selectedCategoryId);
     const url = categoryId ? `/files/${categoryId}` : '/files';  // Ha van categoryId, az adott kategóriát töltjük be
     const response = await fetch(url);
     const documents = await response.json();
@@ -29,9 +30,10 @@ async function loadDocuments(categoryId = null) {
 
     documents.forEach(async doc => {
         if (doc.status === 'approved') {
+            console.log("download url:", doc.download_url);
             const docCard = document.createElement('div');
             docCard.className = 'document-card';
-
+            
             const docInfo = document.createElement('div');
             docInfo.innerHTML = `
                 <h3>${doc.title}</h3>
@@ -45,6 +47,8 @@ async function loadDocuments(categoryId = null) {
             downloadButton.onclick = () => window.location.href = doc.download_url;
 
             docActions.appendChild(downloadButton);
+
+
             const user_data = await getUserData();
             const userId = user_data.id;
             const role = user_data.role;
@@ -53,8 +57,91 @@ async function loadDocuments(categoryId = null) {
                 const deleteButton = document.createElement('button');
                 deleteButton.innerText = 'Delete';
                 deleteButton.className = 'delete-button';
+
+                const editButton = document.createElement('button');
+                editButton.innerText = 'Edit';
+                editButton.className = 'edit-button';
+                editButton.onclick = async () => {
+                    const title = doc.title;
+                    const description = doc.description
+                    const deleteurl = doc.delete_url;
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('Nincs bejelentkezve felhasználó');
+                        return null;
+                    }
+    
+                    const user_data = await getUserData();
+                    const userId = user_data.id;
+                    const role = user_data.role;
+    
+    
+    
+                    const fileInput = document.getElementById('edit-file-input');
+                    fileInput.click();  // Ez megnyitja a fájlválasztó ablakot
+    
+                    // Miután a felhasználó fájlt választott
+                    fileInput.onchange = async (event) => {
+                        const fileNew = event.target.files[0]; // Az első kiválasztott fájl
+                        if (!fileNew) {
+                            alert('Kérlek válassz fájlt!');
+                            return;
+                        }
+                    }
+    
+                    const formData = new FormData();
+                    formData.append('uploaded_by', userId);
+                    formData.append('file', fileNew);
+                    formData.append('title', title);
+                    formData.append('description', description);
+                    formData.append('role', role);
+                    formData.append('category_id', selectedCategoryId);
+    
+                    const response = await fetch('/upload/', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    const data = await response.json();
+                    if (data.message === 'File is uploaded successfully.') {
+                        alert('File is uploaded successfully.');
+                        loadDocuments(selectedCategoryId);
+                        return;
+                    }
+                    if (data.message === 'File is uploaded successfully, and is waiting for approval.') {
+                        alert('File is uploaded successfully, and is waiting for approval.');
+                        loadDocuments(selectedCategoryId);
+                        return;
+                    } else {
+                        alert('Upload failed');
+                    }
+    
+    
+                    try {
+                        const response = await fetch(deleteurl, {
+                            method: 'DELETE',  // Itt biztosítjuk, hogy DELETE kérés legyen
+                            headers: {
+                                'Authorization': `Bearer ${token}`,  // Ha szükséges, hozzáadhatod a token-t
+                            },
+                        });
+                
+                        if (response.ok) {
+                            console.log("File deleted successfully.");
+                            loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
+                        } else {
+                            const errorResponse = await response.json();
+                            console.error("Failed to delete file:", errorResponse.detail);
+                        }
+                    } catch (error) {
+                        console.error("Error during delete request:", error);
+                    }
+                };
+    
             // console.log("Uploaded by:", doc.file_path);
             deleteButton.onclick = async () => {
+                console.log("Delete button clicked, url:", doc.delete_url);
                 try {
                     const response = await fetch(doc.delete_url, {
                         method: 'DELETE',  // Itt biztosítjuk, hogy DELETE kérés legyen
@@ -74,10 +161,14 @@ async function loadDocuments(categoryId = null) {
                     console.error("Error during delete request:", error);
                 }
             };
+
+            
             
             
             
                 docActions.appendChild(deleteButton);
+                docActions.appendChild(editButton);
+
             }
 
             docCard.appendChild(docInfo);
@@ -88,27 +179,6 @@ async function loadDocuments(categoryId = null) {
     });
 }
 
-// Törlés gomb funkció
-async function deleteFile(filePath) {
-    try {
-        const response = await fetch(doc.delete_url, {
-            method: 'DELETE',  // Itt biztosítjuk, hogy DELETE kérés legyen
-            headers: {
-                'Authorization': `Bearer ${token}`,  // Ha szükséges, hozzáadhatod a token-t
-            },
-        });
-
-        if (response.ok) {
-            console.log("File deleted successfully.");
-            loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
-        } else {
-            const errorResponse = await response.json();
-            console.error("Failed to delete file:", errorResponse.detail);
-        }
-    } catch (error) {
-        console.error("Error during delete request:", error);
-    }
-}
 
 async function getUserData() {
     const token = localStorage.getItem('token');
@@ -183,7 +253,3 @@ document.getElementById('upload-button').addEventListener('click', async () => {
 
 // Dokumentumok betöltése az oldal betöltésekor
 loadDocuments(selectedCategoryId);
-
-
-
-

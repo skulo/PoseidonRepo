@@ -741,4 +741,19 @@ def get_categories(db: Session = Depends(get_db)):
 
 @app.get("/files/{category_id}")
 def get_documents_by_category(category_id: str, db: Session = Depends(get_db)):
-    return db.query(Document).filter(Document.category_id == category_id, Document.status == "approved").all()
+    documents = db.query(Document).filter(Document.category_id == category_id, Document.status == "approved").all()
+
+    return [
+        {
+            "id": doc.id,
+            "title": doc.title,
+            "description": doc.description,
+            "file_path": doc.file_path,
+            "status": doc.status,
+            "uploaded_by": doc.uploaded_by,
+            "uploaded_at": doc.uploaded_at.isoformat(),
+            "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",
+            "download_url": f"/download/{doc.file_path.split('/')[-1]}",
+        }
+        for doc in documents
+    ]
