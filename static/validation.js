@@ -8,8 +8,8 @@ const error_message = document.getElementById('error-message')
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   let errors = []
-
   if(firstname_input){
+
     // If we have a firstname input then we are in the signup
     errors = getSignupFormErrors(firstname_input.value, email_input.value, password_input.value, repeat_password_input.value)
 
@@ -25,11 +25,10 @@ form.addEventListener('submit', (e) => {
     }
   }
   else{
-    // If we don't have a firstname input then we are in the login
+    // If we don't have a firstname input then we are in the loginű
     errors = getLoginFormErrors(email_input.value, password_input.value)
     if(errors.length > 0){
       // If there are any errors
-      e.preventDefault()
       error_message.innerText  = errors.join(". ")
     }
     if(errors.length === 0){
@@ -238,18 +237,11 @@ async function loginUser() {
 
   const data = await response.json();
   if (data.access_token) {
-    // Bejelentkezés sikeres, folytasd a normál folyamatot
-    localStorage.setItem('access_token', data.access_token);
-    window.location.href = "/catalog/catalog.html"; // Redirect a dashboard-ra
-}else {
-    if (data.status === 'not_verified') {
-      // Ha az email nincs verifikálva, mutassuk a verifikációs kód mezőt
-      alert(data.message); 
-      document.getElementById('verification_section').style.display = 'block';
-      // Írd ki az üzenetet, hogy a felhasználó beírja a verifikációs kódot
+      localStorage.setItem('token', data.access_token);
+      alert('Sikeres bejelentkezés OG!');
+      window.location.href = "/catalog/catalog.html";
   } else {
-      alert(data.detail || 'Hiba történt a bejelentkezés során!');
-  }
+      alert('Hibás bejelentkezési adatok!');
   }
 }
 

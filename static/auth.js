@@ -84,7 +84,7 @@ async function loginUser() {
     const data = await response.json();
     if (data.access_token) {
         localStorage.setItem('token', data.access_token);
-        alert('Sikeres bejelentkezés!');
+        alert('Sikeres bejelentkezés OG!');
         window.location.href = "/catalog/catalog.html";
     } else {
         alert('Hibás bejelentkezési adatok!');

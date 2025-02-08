@@ -57,7 +57,7 @@ if os.path.exists(BOOKS_FILE):
         
 SECRET_KEY = "YOUR_SECRET_KEY"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
 
 app = FastAPI()
@@ -75,6 +75,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/catalog", StaticFiles(directory="catalog"), name="catalog")
+app.mount("/main", StaticFiles(directory="main"), name="main")
+
 
 handler = Mangum(app)
 # A token generálása
@@ -125,15 +127,18 @@ def verify_get_user_from_db(email: str, db: Session = SessionLocal()) -> Optiona
     return True
 
 
+def verify_password(plain_password, password_hash):
+    return pwd_context.verify(plain_password, password_hash)
+
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = get_user_from_db(form_data.username)
-    if user is None:
+    if user is None or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail="Invalid credentials"+form_data.username + form_data.password + user.password_hash,
         )
-    
+    print("token generating")
     if not user.verified:
         return {"status": "not_verified", "message": "Email not verified. Please enter the verification code sent to your email."}
     
@@ -141,6 +146,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": form_data.username}, expires_delta=access_token_expires
     )
+    print("ACCESS TOKEN" + access_token)
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -265,7 +272,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         send_email(db_user.email, verification_code)
         "EMAIL SENT"
     except IntegrityError as e:
-        raise HTTPException(status_code=400, detail="Ez az email cím már regisztrálva van!")
+        raise HTTPException(status_code=400, detail="Ez az email cím már regisztrálvaA van!")
     return db_user
 
 @app.get("/users/{user_id}", response_model=UserResponse)
@@ -296,7 +303,8 @@ async def upload_file(
     file: UploadFile = File(...), 
     title: str = Form(""), 
     description: str = Form(""), 
-    category_id: str = Form(""), 
+    category_id: str = Form(""),
+    role: str = Form(""), 
     uploaded_by: str = Form(""), 
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
@@ -311,27 +319,51 @@ async def upload_file(
     file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{file.filename}"
 
     # Új dokumentum mentése az adatbázisba
-    new_document = Document(
-        title=title,
-        description=description,
-        file_path=file_url,
-        uploaded_by=uploaded_by,
-        status="pending",  # vagy más alapértelmezett státusz
-        category_id=category_id,
-    )
-    db.add(new_document)
-    db.commit()
-    db.refresh(new_document)
+    if role == 'user':
+        new_document = Document(
+            title=title,
+            description=description,
+            file_path=file_url,
+            uploaded_by=uploaded_by,
+            status="pending",  
+            category_id="1",
+        )
+        db.add(new_document)
+        db.commit()
+        db.refresh(new_document)
 
-    return {
-        "message": "File uploaded successfully.",
-        "file_url": file_url,
-        "document_id": new_document.id,
-        "title": new_document.title,
-        "description": new_document.description,
-        "uploaded_by": new_document.uploaded_by,
-        "uploaded_at": new_document.uploaded_at.isoformat(),
-    }
+        return {
+            "message": "File is uploaded successfully, and is waiting for approval.",
+            "file_url": file_url,
+            "document_id": new_document.id,
+            "title": new_document.title,
+            "description": new_document.description,
+            "uploaded_by": new_document.uploaded_by,
+            "uploaded_at": new_document.uploaded_at.isoformat(),
+        }
+    else:
+        new_document = Document(
+            title=title,
+            description=description,
+            file_path=file_url,
+            uploaded_by=uploaded_by,
+            status="approved",  
+            category_id=category_id,
+        )
+        db.add(new_document)
+        db.commit()
+        db.refresh(new_document)
+
+        return {
+            "message": 'File is uploaded successfully.',
+            "file_url": file_url,
+            "document_id": new_document.id,
+            "title": new_document.title,
+            "description": new_document.description,
+            "uploaded_by": new_document.uploaded_by,
+            "uploaded_at": new_document.uploaded_at.isoformat(),
+        }
+    
 
 
 @app.delete("/delete/{filename}")
@@ -410,6 +442,8 @@ async def get_files(db: Session = Depends(get_db)):
             "title": doc.title,
             "description": doc.description,
             "file_path": doc.file_path,
+            "status": doc.status,
+            "uploaded_by": doc.uploaded_by,
             "uploaded_at": doc.uploaded_at.isoformat(),
             "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",
             "download_url": f"/download/{doc.file_path.split('/')[-1]}",
@@ -688,3 +722,23 @@ def resend_code(
     finally:
         session.close()
 
+
+
+@app.get("/categories")
+def get_categories(db: Session = Depends(get_db)):
+    categories = db.query(Category).all()
+    category_map = {cat.id: cat for cat in categories}
+    
+    def build_tree(category):
+        return {
+            "id": category.id,
+            "name": category.name,
+            "children": [build_tree(sub) for sub in categories if sub.parent_id == category.id]
+        }
+    
+    return [build_tree(cat) for cat in categories if cat.parent_id is None]
+
+
+@app.get("/files/{category_id}")
+def get_documents_by_category(category_id: str, db: Session = Depends(get_db)):
+    return db.query(Document).filter(Document.category_id == category_id, Document.status == "approved").all()

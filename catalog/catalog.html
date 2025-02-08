@@ -8,18 +8,32 @@
 </head>
 <body>
     <header>
-        <h1>Document Catalog</h1>
-
-        <div id="nav-links">
-            <a href="/static/login.html" id="auth-link" style="display: none;">Bejelentkezés / Regisztráció</a>
-        </div>
-
-
-        <div id="user-info">
-            <span id="username">Logged in as: <strong><script></script></strong></span>
-            <button id="logout" style="display:none;">Log out</button>
-        </div>
-    </header>
+        <nav class="navbar">
+          <div class="navbar-container">
+            <a href="/" class="navbar-logo">
+              <img src="logo.png" alt="Poseidon Logo" />
+            </a>
+            <ul class="navbar-links">
+              <li><a href="/catalog/catalog.html">Katalógus</a></li>
+              <li><a href="/products">Products</a></li>
+              <li><a href="/about">About</a></li>
+              <li><a href="/support">Support</a></li>
+            
+            </ul>
+            <div class="navbar-actions">
+              <a href="/cart" class="navbar-cart">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <circle cx="9" cy="21" r="1"/>
+                  <circle cx="19" cy="21" r="1"/>
+                  <path d="M4 4h2l3 9h8l3-9h2"/>
+                </svg>
+                <span>Cart</span>
+              </a>
+              <a href="/static/login.html" class="navbar-login">Login</a>
+            </div>
+          </div>
+        </nav>
+      </header>
 
     <div id="upload-section">
         <h2>Upload a New File</h2>
@@ -63,7 +77,7 @@
     async function getUserData() {
         const token = localStorage.getItem('token');
         if (!token) {
-            alert('Először jelentkezz be!');
+            //alert('Először jelentkezz be!');
             return;
         }
         
