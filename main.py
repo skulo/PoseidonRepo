@@ -589,7 +589,7 @@ def resend_code(
     verification_process: str = "EMAIL", 
     service_provider_id: str = 'VB',
     session: Session = Depends(get_db),
-    method="exponential"):
+    method="linear"):
 
     base = BaseClass()
     current_timestamp = datetime.now(timezone.utc)  
@@ -635,9 +635,9 @@ def resend_code(
             next_resend_time = verification_run.last_try_timestamp + wait_time  
             
             if verification_run.try_count != 0:
-                if method == "linear":
+                if MAX_RETRY_PROCESS_METHOD == "linear":
                     wait_time_last = calculate_linear_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
-                elif method == "exponential":
+                elif MAX_RETRY_PROCESS_METHOD == "exponential":
                     wait_time_last = calculate_exponential_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
 
                 last_next_resend_time = verification_run.last_try_timestamp + wait_time_last
