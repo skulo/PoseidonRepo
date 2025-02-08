@@ -326,7 +326,7 @@ async def upload_file(
             file_path=file_url,
             uploaded_by=uploaded_by,
             status="pending",  
-            category_id="1",
+            category_id=category_id,
         )
         db.add(new_document)
         db.commit()

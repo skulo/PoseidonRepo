@@ -32,7 +32,7 @@
               <li><a href="/products">Products</a></li>
               <li><a href="/about">About</a></li>
               <li><a href="/support">Support</a></li>
-            
+              <li> <a href="#" id="logout">Logout</a></li>
             </ul>
             <div class="navbar-actions">
               <a href="/cart" class="navbar-cart">
@@ -49,14 +49,12 @@
         </nav>
       </header>
 
-    <div id="upload-section">
+    <div id="upload-section" style="display: none;">
         <h2>Upload a New File</h2>
         <input type="file" id="file-input" />
         <input type="text" id="title-input" placeholder="Title" />
         <input type="text" id="description-input" placeholder="Description" />
         <button id="upload-button" disabled>Upload</button>
-        <button id="editButton" disabled>Edit</button>
-        <input type="file" id="edit-file-input"/>
     </div>
 
     <section id="documents">
@@ -156,6 +154,10 @@ document.querySelector('.dropbtn').addEventListener('mouseenter', () => {
 document.querySelector('.dropdown-content').addEventListener('mouseenter', () => {
     const dropdownContent = document.querySelector('.dropdown-content');
     dropdownContent.style.display = 'block';  // Hoverkor megjelenítjük
+});
+document.querySelector('.dropdown-content').addEventListener('mouseleave', () => {
+    const dropdownContent = document.querySelector('.dropdown-content');
+    dropdownContent.style.display = 'none';  // Hoverkor megjelenítjük
 });
 
 // Dropdown gombra hoverről való eltávolítás (mouseleave)

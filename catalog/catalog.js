@@ -5,11 +5,12 @@ let isAdminOrModerator = false;
 let selectedCategoryId = 1;
 
 // Kilépés gomb funkció
-//document.getElementById('logout').addEventListener('click', () => {
-  //  localStorage.removeItem('token');
-    //localStorage.removeItem('username');
-    //window.location.reload();
-//6});
+document.getElementById('logout').addEventListener('click', () => {
+    event.preventDefault();
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    window.location.reload();
+});
 
 // Feltöltési gomb aktiválása
 document.getElementById('file-input').addEventListener('change', () => {
@@ -50,6 +51,8 @@ async function loadDocuments(categoryId = null) {
 
 
             const user_data = await getUserData();
+            if (user_data) {
+            
             const userId = user_data.id;
             const role = user_data.role;
             console.log("User ID:", userId);
@@ -64,6 +67,10 @@ async function loadDocuments(categoryId = null) {
 
                 
                 editButton.onclick = async () => {
+                    deleteButton.style.display = 'none';
+                    downloadButton.style.display = 'none';
+                    editButton.style.display = 'none';
+
                     const title = doc.title;
                     const description = doc.description
                     const deleteurl = doc.delete_url;
@@ -78,9 +85,51 @@ async function loadDocuments(categoryId = null) {
                     const role = user_data.role;
     
     
-    
-                    const fileInput = document.getElementById('edit-file-input');
-                    const fileNew = fileInput.files[0];
+                    let fileInput = editButton.parentElement.querySelector('.edit-file-input');
+                    if (!fileInput) {
+                        fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.id = 'edit-file-input';
+                        fileInput.classList.add('edit-file-input');
+                         // Látható legyen
+                        editButton.insertAdjacentElement('afterend', fileInput); // Gomb után helyezzük be
+                    }
+                    fileInput.style.display = 'block';
+                    fileInput.click();
+
+
+                    const cancelButton = document.createElement('button');
+                    cancelButton.innerText = 'Cancel';
+                    cancelButton.classList.add('cancelButton');
+                    docActions.appendChild(cancelButton);
+
+                    const submitButton = document.createElement('button');
+                    submitButton.innerText = 'Submit';
+                    submitButton.classList.add('submitButton');
+                    docActions.appendChild(submitButton);
+
+                    cancelButton.onclick = () => {
+                        fileInput.style.display = 'none';
+                        cancelButton.style.display = 'none';
+                        submitButton.style.display = 'none';
+                        deleteButton.style.display = 'inline-block';  // Eredeti gombok vissza
+                        downloadButton.style.display = 'inline-block';
+                        editButton.style.display = 'inline-block';
+                        return;
+                    };
+
+                    /* The line `fileInput.onchange = async (event) => {` is setting up an asynchronous
+                    event listener for the `onchange` event of the `fileInput` element. This means
+                    that when the user selects a new file using the file input element, the function
+                    defined inside the event listener will be executed. */
+                    submitButton.onclick = async () => {
+                        const fileNew = fileInput.files[0];
+                        if (!fileNew) {
+                            alert('Kérlek válassz fájlt!');
+                            return;
+                        }
+                    //const fileInput = document.getElementById('edit-file-input');
+                    //const fileNew = fileInput.files[0];
                     const formData = new FormData();
                     formData.append('uploaded_by', userId);
                     formData.append('file', fileNew);
@@ -124,6 +173,19 @@ async function loadDocuments(categoryId = null) {
                     } catch (error) {
                         console.error("Error during delete request:", error);
                     }
+
+
+                    fileInput.style.display = 'none';
+                    cancelButton.style.display = 'none';
+                    submitButton.style.display = 'none';
+                    deleteButton.style.display = 'inline-block';  // Eredeti gombok vissza
+                    downloadButton.style.display = 'inline-block';
+                    editButton.style.display = 'inline-block';
+                    loadDocuments(selectedCategoryId); 
+                    return;
+                }
+                }
+
                 };
     
             // console.log("Uploaded by:", doc.file_path);
@@ -240,3 +302,20 @@ document.getElementById('upload-button').addEventListener('click', async () => {
 
 // Dokumentumok betöltése az oldal betöltésekor
 loadDocuments(selectedCategoryId);
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    const uploadSection = document.getElementById('upload-section');
+    const logoutButton = document.getElementById('logout');
+    // Ha van token, akkor megjelenítjük a feltöltési szekciót
+    if (token) {
+        uploadSection.style.display = 'block';
+        logoutButton.style.display = 'block';
+
+    } else {
+        // Ha nincs token, elrejtjük a szekciót
+        uploadSection.style.display = 'none';
+        logoutButton.style.display = 'none';
+    }
+});
