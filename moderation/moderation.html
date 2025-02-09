@@ -29,7 +29,11 @@
             <li><a href="/catalog/catalog.html">Katalógus</a></li>
             <li><a href="/products">Products</a></li>
             <li><a href="/about">About</a></li>
-            <li><a href="/moderation/moderation.html">Moderáció</a></li>
+            <li>
+              <a href="/moderation/moderation.html" id="moderation"
+                >Moderáció</a
+              >
+            </li>
             <li><a href="#" id="logout">Logout</a></li>
           </ul>
           <div class="navbar-actions">
@@ -55,18 +59,12 @@
       </nav>
     </header>
 
-    <div id="upload-section" style="display: none">
-      <h2>Upload a New File</h2>
-      <input type="file" id="file-input" />
-      <input type="text" id="title-input" placeholder="Title" />
-      <input type="text" id="description-input" placeholder="Description" />
-      <button id="upload-button" disabled>Upload</button>
-    </div>
-
     <section id="documents">
       <h2>Moderációs oldal</h2>
       <div id="pending-files-container"></div>
     </section>
+    <p id="user_data" style="display: none"></p>
+
     <script src="moderation.js"></script>
   </body>
 </html>

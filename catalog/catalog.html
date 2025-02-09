@@ -1,174 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document Catalog</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <header>
-        <nav class="navbar">
-
-            <div class="dropdown">
-                <button class="dropbtn">Kategóriák
-                  <i class="fa fa-caret-down"></i>
-                </button>
-                <div class="dropdown-content">
-                    <div class="header">
-                      <h2>Mega Menu</h2>
-                    </div>
-                    <div class="row" id="category-container">
-                      <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
-                    </div>
-                  </div>
-              </div>
-
-
-          <div class="navbar-container">
-
-            <ul class="navbar-links">
-              <li><a href="/catalog/catalog.html">Katalógus</a></li>
-              <li><a href="/products">Products</a></li>
-              <li><a href="/about">About</a></li>
-              <li><a href="/moderation/moderation.html">Moderáció</a></li>
-              <li> <a href="#" id="logout">Logout</a></li>
-            </ul>
-            <div class="navbar-actions">
-              <a href="/cart" class="navbar-cart">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                  <circle cx="9" cy="21" r="1"/>
-                  <circle cx="19" cy="21" r="1"/>
-                  <path d="M4 4h2l3 9h8l3-9h2"/>
-                </svg>
-                <span>Cart</span>
-              </a>
-              <a href="/static/login.html" class="navbar-login">Login</a>
+      <nav class="navbar">
+        <div class="dropdown">
+          <button class="dropbtn">
+            Kategóriák
+            <i class="fa fa-caret-down"></i>
+          </button>
+          <div class="dropdown-content">
+            <div class="header">
+              <h2>Mega Menu</h2>
+            </div>
+            <div class="row" id="category-container">
+              <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
             </div>
           </div>
-        </nav>
-      </header>
+        </div>
 
-    <div id="upload-section" style="display: none;">
-        <h2>Upload a New File</h2>
-        <input type="file" id="file-input" />
-        <input type="text" id="title-input" placeholder="Title" />
-        <input type="text" id="description-input" placeholder="Description" />
-        <button id="upload-button" disabled>Upload</button>
+        <div class="navbar-container">
+          <ul class="navbar-links">
+            <li><a href="/catalog/catalog.html">Katalógus</a></li>
+            <li><a href="/products">Products</a></li>
+            <li><a href="/about">About</a></li>
+            <li>
+              <a href="/moderation/moderation.html" id="moderation"
+                >Moderáció</a
+              >
+            </li>
+            <li><a href="#" id="logout">Logout</a></li>
+          </ul>
+          <div class="navbar-actions">
+            <a href="/cart" class="navbar-cart">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+              >
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="19" cy="21" r="1" />
+                <path d="M4 4h2l3 9h8l3-9h2" />
+              </svg>
+              <span>Cart</span>
+            </a>
+            <a href="/static/login.html" class="navbar-login">Login</a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <div id="upload-section" style="display: none">
+      <h2>Upload a New File</h2>
+      <input type="file" id="file-input" />
+      <input type="text" id="title-input" placeholder="Title" />
+      <input type="text" id="description-input" placeholder="Description" />
+      <button id="upload-button" disabled>Upload</button>
     </div>
 
     <section id="documents">
-        <h2>Documents</h2>
-        <div id="documents-list">
-
-        </div>
+      <h2>Documents</h2>
+      <div id="documents-list"></div>
     </section>
 
     <script src="catalog.js"></script>
 
-
-
-
-
     <h2>Felhasználói adatok</h2>
     <button onclick="getUserData()">Felhasználói adatok lekérése</button>
-    <p id="user_data"></p>
-<script>
-    window.onload = async function() {
-            const token = localStorage.getItem('token');
+    <p id="user_data" style="display: none"></p>
+    <script>
+      window.onload = async function () {
+        const token = localStorage.getItem("token");
         if (!token) {
-            if (!token) {
-                document.getElementById('auth-link').style.display = 'block';
+          if (!token) {
+            document.getElementById("auth-link").style.display = "block";
             return;
+          }
         }
-            }
-        
-        const response = await fetch('http://127.0.0.1:8000/me', {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + token }
+
+        const response = await fetch("http://127.0.0.1:8000/me", {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
         });
-        };
+      };
 
-
-    async function getUserData() {
-        const token = localStorage.getItem('token');
+      async function getUserData() {
+        const token = localStorage.getItem("token");
         if (!token) {
-            //alert('Először jelentkezz be!');
-            return;
+          //alert('Először jelentkezz be!');
+          return;
         }
-        
-        const response = await fetch('http://127.0.0.1:8000/me', {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + token }
+
+        const response = await fetch("http://127.0.0.1:8000/me", {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
         });
         const data = await response.json();
-        document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
+        document.getElementById("user_data").innerText = JSON.stringify(
+          data,
+          null,
+          2
+        );
         return data;
-    }
+      }
 
- // Dinamikus kategória betöltés
-async function loadCategories() {
-    const response = await fetch('http://127.0.0.1:8000/categories');
-    const categories = await response.json();
+      // Dinamikus kategória betöltés
+      async function loadCategories() {
+        const response = await fetch("http://127.0.0.1:8000/categories");
+        const categories = await response.json();
 
-    const categoryContainer = document.getElementById('category-container');
+        const categoryContainer = document.getElementById("category-container");
 
-    categories.forEach(category => {
-        const categoryColumn = document.createElement('div');
-        categoryColumn.classList.add('column');
+        categories.forEach((category) => {
+          const categoryColumn = document.createElement("div");
+          categoryColumn.classList.add("column");
 
-        const categoryTitle = document.createElement('h3');
-        categoryTitle.textContent = category.name;
-        categoryColumn.appendChild(categoryTitle);
+          const categoryTitle = document.createElement("h3");
+          categoryTitle.textContent = category.name;
+          categoryColumn.appendChild(categoryTitle);
 
-        category.children.forEach(subcategory => {
-            const subcategoryLink = document.createElement('a');
+          category.children.forEach((subcategory) => {
+            const subcategoryLink = document.createElement("a");
             subcategoryLink.href = "#";
             subcategoryLink.textContent = subcategory.name;
-            
+
             // Eseménykezelő hozzáadása, hogy betöltsük az adott kategóriához tartozó fájlokat
             subcategoryLink.onclick = async (e) => {
-                const dropdownContent = document.querySelector('.dropdown-content');
-                dropdownContent.style.display = dropdownContent.style.display === 'none' || dropdownContent.style.display === '' ? 'block' : 'none';
-                e.preventDefault();
-                await loadDocuments(subcategory.id);  // Az alábbi kódban ezt a category_id-t használjuk
+              const dropdownContent =
+                document.querySelector(".dropdown-content");
+              dropdownContent.style.display =
+                dropdownContent.style.display === "none" ||
+                dropdownContent.style.display === ""
+                  ? "block"
+                  : "none";
+              e.preventDefault();
+              await loadDocuments(subcategory.id); // Az alábbi kódban ezt a category_id-t használjuk
             };
 
             categoryColumn.appendChild(subcategoryLink);
+          });
+
+          categoryContainer.appendChild(categoryColumn);
+        });
+      }
+
+      window.onload = loadCategories; // Kategóriák betöltése oldal betöltésekor
+
+      // Dropdown gombra hover eseményfigyelő hozzáadása
+      document.querySelector(".dropbtn").addEventListener("mouseenter", () => {
+        const dropdownContent = document.querySelector(".dropdown-content");
+        dropdownContent.style.display = "block"; // Hoverkor megjelenítjük
+      });
+
+      document
+        .querySelector(".dropdown-content")
+        .addEventListener("mouseenter", () => {
+          const dropdownContent = document.querySelector(".dropdown-content");
+          dropdownContent.style.display = "block"; // Hoverkor megjelenítjük
+        });
+      document
+        .querySelector(".dropdown-content")
+        .addEventListener("mouseleave", () => {
+          const dropdownContent = document.querySelector(".dropdown-content");
+          dropdownContent.style.display = "none"; // Hoverkor megjelenítjük
         });
 
-        categoryContainer.appendChild(categoryColumn);
-    });
-}
-    
-
-        window.onload = loadCategories; // Kategóriák betöltése oldal betöltésekor
-
-
-// Dropdown gombra hover eseményfigyelő hozzáadása
-document.querySelector('.dropbtn').addEventListener('mouseenter', () => {
-    const dropdownContent = document.querySelector('.dropdown-content');
-    dropdownContent.style.display = 'block';  // Hoverkor megjelenítjük
-});
-
-document.querySelector('.dropdown-content').addEventListener('mouseenter', () => {
-    const dropdownContent = document.querySelector('.dropdown-content');
-    dropdownContent.style.display = 'block';  // Hoverkor megjelenítjük
-});
-document.querySelector('.dropdown-content').addEventListener('mouseleave', () => {
-    const dropdownContent = document.querySelector('.dropdown-content');
-    dropdownContent.style.display = 'none';  // Hoverkor megjelenítjük
-});
-
-// Dropdown gombra hoverről való eltávolítás (mouseleave)
-document.querySelector('.dropbtn').addEventListener('mouseleave', () => {
-    const dropdownContent = document.querySelector('.dropdown-content');
-    dropdownContent.style.display = 'none';  // Hover elhagyásakor eltüntetjük
-});
-
-</script>
-
-
-
-</body>
+      // Dropdown gombra hoverről való eltávolítás (mouseleave)
+      document.querySelector(".dropbtn").addEventListener("mouseleave", () => {
+        const dropdownContent = document.querySelector(".dropdown-content");
+        dropdownContent.style.display = "none"; // Hover elhagyásakor eltüntetjük
+      });
+    </script>
+  </body>
 </html>

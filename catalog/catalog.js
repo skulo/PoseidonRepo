@@ -165,6 +165,7 @@ async function loadDocuments(categoryId = null) {
                 
                         if (response.ok) {
                             console.log("File deleted successfully.");
+
                             loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
                         } else {
                             const errorResponse = await response.json();
@@ -181,8 +182,6 @@ async function loadDocuments(categoryId = null) {
                     deleteButton.style.display = 'inline-block';  // Eredeti gombok vissza
                     downloadButton.style.display = 'inline-block';
                     editButton.style.display = 'inline-block';
-                    loadDocuments(selectedCategoryId); 
-                    return;
                 }
                 }
 
@@ -201,6 +200,7 @@ async function loadDocuments(categoryId = null) {
                 
                         if (response.ok) {
                             console.log("File deleted successfully.");
+                            
                             loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
                         } else {
                             const errorResponse = await response.json();
@@ -306,14 +306,29 @@ document.getElementById('upload-button').addEventListener('click', async () => {
 loadDocuments(selectedCategoryId);
 
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('token');
     const uploadSection = document.getElementById('upload-section');
     const logoutButton = document.getElementById('logout');
+    const moderationButton = document.getElementById('moderation');
+
+
     // Ha van token, akkor megjelenítjük a feltöltési szekciót
     if (token) {
+
+        
         uploadSection.style.display = 'block';
         logoutButton.style.display = 'block';
+        const user_data = await getUserData();
+    
+        const userId = user_data.id;
+        const role = user_data.role;
+        if (role === 'admin' || role === 'moderator') {
+            moderationButton.style.display = 'block';
+        }
+        if(role === 'user') {
+            moderationButton.style.display = 'none';
+        }
 
     } else {
         // Ha nincs token, elrejtjük a szekciót
