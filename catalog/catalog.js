@@ -2,7 +2,9 @@
 let token = localStorage.getItem('token');
 let username = localStorage.getItem('username');
 let isAdminOrModerator = false;
-let selectedCategoryId = 1;
+
+const urlParams = new URLSearchParams(window.location.search);
+let selectedCategoryId = urlParams.get('selectedCategoryId') || 1; 
 
 // Kilépés gomb funkció
 document.getElementById('logout').addEventListener('click', () => {
@@ -20,7 +22,7 @@ document.getElementById('file-input').addEventListener('change', () => {
 // Dokumentumok betöltése
 async function loadDocuments(categoryId = null) {
     selectedCategoryId = categoryId;
-    console.log("Selected category ID:", selectedCategoryId);
+    console.log("Selected categoryy ID:", selectedCategoryId);
     const url = categoryId ? `/files/${categoryId}` : '/files';  // Ha van categoryId, az adott kategóriát töltjük be
     const response = await fetch(url);
     const documents = await response.json();

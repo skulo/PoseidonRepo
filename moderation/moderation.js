@@ -233,7 +233,9 @@ const response = await fetch('http://127.0.0.1:8000/me', {
 async function getUserData() {
 const token = localStorage.getItem('token');
 if (!token) {
-    //alert('Először jelentkezz be!');
+    alert('Először jelentkezz be!');
+    window.location.href = "/static/login.html";
+
     return;
 }
 
@@ -322,7 +324,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (token) {
 
         
-        uploadSection.style.display = 'block';
         logoutButton.style.display = 'block';
         const user_data = await getUserData();
     
@@ -336,14 +337,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             moderationButton.style.display = 'none';
 
             alert("Nincs jogosultságod a moderációs oldal megtekintésére.");
+            window.location.href = "/catalog/catalog.html";
         }
 
     } else {
         // Ha nincs token, elrejtjük a szekciót
-        uploadSection.style.display = 'none';
         logoutButton.style.display = 'none';
 
         alert("Nincs jogosultságod a moderációs oldal megtekintésére.");
+        window.location.href = "/catalog/catalog.html";
+
     }
 });
 
@@ -352,8 +355,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadDocuments(categoryId = null) {
 
+    
     selectedCategoryId = categoryId;
+
+    window.location.href = `/catalog/catalog.html?selectedCategoryId=${categoryId}`;
+
     console.log("Selected category ID:", selectedCategoryId);
+
+
+
     const url = categoryId ? `/files/${categoryId}` : '/files';  // Ha van categoryId, az adott kategóriát töltjük be
     const response = await fetch(url);
     const documents = await response.json();
