@@ -186,30 +186,30 @@ async function loadDocuments(categoryId = null) {
                 }
                 }
 
-                };
+                
     
-            // console.log("Uploaded by:", doc.file_path);
-            deleteButton.onclick = async () => {
-                console.log("Delete button clicked, url:", doc.delete_url);
-                try {
-                    const response = await fetch(doc.delete_url, {
-                        method: 'DELETE',  // Itt biztosítjuk, hogy DELETE kérés legyen
-                        headers: {
-                            'Authorization': `Bearer ${token}`,  // Ha szükséges, hozzáadhatod a token-t
-                        },
-                    });
-            
-                    if (response.ok) {
-                        console.log("File deleted successfully.");
-                        loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
-                    } else {
-                        const errorResponse = await response.json();
-                        console.error("Failed to delete file:", errorResponse.detail);
+                // console.log("Uploaded by:", doc.file_path);
+                deleteButton.onclick = async () => {
+                    console.log("Delete button clicked, url:", doc.delete_url);
+                    try {
+                        const response = await fetch(doc.delete_url, {
+                            method: 'DELETE',  // Itt biztosítjuk, hogy DELETE kérés legyen
+                            headers: {
+                                'Authorization': `Bearer ${token}`,  // Ha szükséges, hozzáadhatod a token-t
+                            },
+                        });
+                
+                        if (response.ok) {
+                            console.log("File deleted successfully.");
+                            loadDocuments(selectedCategoryId);  // Újratöltjük a dokumentumokat
+                        } else {
+                            const errorResponse = await response.json();
+                            console.error("Failed to delete file:", errorResponse.detail);
+                        }
+                    } catch (error) {
+                        console.error("Error during delete request:", error);
                     }
-                } catch (error) {
-                    console.error("Error during delete request:", error);
-                }
-            };
+                };
 
             
             
@@ -217,6 +217,8 @@ async function loadDocuments(categoryId = null) {
             
                 docActions.appendChild(deleteButton);
                 docActions.appendChild(editButton);
+
+            };
 
             }
 

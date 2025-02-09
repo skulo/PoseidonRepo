@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 from sqlite3 import IntegrityError
+import string
 from typing import Dict, List, Literal, Optional
 from uuid import uuid4
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends, status
@@ -76,6 +77,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/catalog", StaticFiles(directory="catalog"), name="catalog")
 app.mount("/main", StaticFiles(directory="main"), name="main")
+app.mount("/moderation", StaticFiles(directory="moderation"), name="moderation")
 
 
 handler = Mangum(app)
@@ -313,10 +315,14 @@ async def upload_file(
     """
     print(f"Category ID: {category_id}, Uploaded By: {uploaded_by}")
 
+    category = db.query(Category).filter(Category.id == category_id).first()
+
+    categoryName = category.name
+    randomize_it = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
 
     # Fájl feltöltése az S3-ba
     s3.upload_fileobj(file.file, S3_BUCKET_NAME, file.filename)
-    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{file.filename}"
+    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{categoryName}_{file.filename}_{randomize_it}"
 
     # Új dokumentum mentése az adatbázisba
     if role == 'user':
@@ -467,7 +473,7 @@ def send_email(recipient_email: str, verification_code: str):
     message["To"] = recipient_email
     message["Subject"] = "Verifikációs kód"
     
-    body = f"A Te verifikációs kódod zsuzsi maomiuka cicuka micuka: {verification_code}"
+    body = f"A Te verifikációs kódod: {verification_code}"
     message.attach(MIMEText(body, "plain"))
 
     # SMTP kapcsolat létrehozása és az email elküldése
@@ -479,6 +485,44 @@ def send_email(recipient_email: str, verification_code: str):
         print(f"Email sikeresen elküldve {recipient_email} címre.")
     except Exception as e:
         print(f"Az email küldésének hibája: {str(e)}")
+
+@app.get("/email/decision")
+def send_email_decision(recipient_email: str, title: str, decision: str, sender: str, rejection_reason: str = None):
+    sender_email = "poseidongg.noreply@gmail.com"  # A Te email címed
+    sender_password = "opst qfmv gwzb lhxa"  # Az email jelszavad
+
+    # SMTP beállítások
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587  # Vagy 465 a SSL-hez
+
+    # Email üzenet készítése
+    message = MIMEMultipart()
+    message["From"] = sender_email
+    if decision == "approved":
+        message["To"] = recipient_email
+        message["Subject"] = "Feltöltött Fájl Jóváhagyva"
+        
+        body = f"A Te fájlod ({title}) jóváhagyásra került, általa: {sender}"
+        message.attach(MIMEText(body, "plain"))
+    if decision == "rejected":
+        message["To"] = recipient_email
+        message["Subject"] = "Feltöltött Fájl Elutasítva"
+        
+        body = f"A Te fájlod ({title}) elutasításra került, általa: {sender}. Az elutasítás oka: {rejection_reason}"
+        message.attach(MIMEText(body, "plain"))
+    
+
+    # SMTP kapcsolat létrehozása és az email elküldése
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()  # TLS titkosítás engedélyezése
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, message.as_string())
+        print(f"Email sikeresen elküldve {recipient_email} címre.")
+    except Exception as e:
+        print(f"Az email küldésének hibája: {str(e)}")
+
+    return {"status": "OK"}
 
 
 
@@ -757,3 +801,65 @@ def get_documents_by_category(category_id: str, db: Session = Depends(get_db)):
         }
         for doc in documents
     ]
+
+@app.get("/filesinfo/{fileId}")
+def get_documents_information(fileId: str, db: Session = Depends(get_db)):
+    doc = db.query(Document).filter(Document.id == fileId).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    usr = db.query(User).filter(User.id == doc.uploaded_by).first()
+    if not usr:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+            "response": "OK",
+            "title": doc.title,
+            "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",
+            "usremail": usr.email,
+            "status": doc.status,
+        }
+
+
+@app.get("/moderations/files")
+def get_pending_files(db: Session = Depends(get_db)):
+    documents = db.query(Document).filter(Document.status == "pending").all()
+    return [
+        {
+            "id": doc.id,
+            "title": doc.title,
+            "description": doc.description,
+            "file_path": doc.file_path,
+            "status": doc.status,
+            "uploaded_by": doc.uploaded_by,
+            "uploaded_at": doc.uploaded_at.isoformat(),
+            "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",
+            "download_url": f"/download/{doc.file_path.split('/')[-1]}",
+        }
+        for doc in documents
+    ]
+
+
+@app.put("/moderations/approve/{file_id}")
+async def approve_file(file_id: str, db: Session = Depends(get_db)):
+    doc = db.query(Document).filter(Document.id == file_id, Document.status == 'pending').first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found or already processed")
+    
+    doc.status = 'approved'
+    db.commit()
+    return {"message": "File approved successfully"}
+
+
+
+@app.put("/moderations/reject/{file_id}")
+async def reject_file(file_id: str, reason: str, db: Session = Depends(get_db)):
+    doc = db.query(Document).filter(Document.id == file_id, Document.status == 'pending').first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found or already processed")
+    
+    doc.status = 'rejected'
+    #file.rejection_reason = reason
+    db.commit()
+    return {"message": "File rejected successfully"}
+
