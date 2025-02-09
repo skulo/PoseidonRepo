@@ -319,10 +319,10 @@ async def upload_file(
 
     categoryName = category.name
     randomize_it = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-
+    filenameNew = f"{randomize_it}_{categoryName}_{file.filename}"
     # Fájl feltöltése az S3-ba
-    s3.upload_fileobj(file.file, S3_BUCKET_NAME, file.filename)
-    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{categoryName}_{file.filename}_{randomize_it}"
+    s3.upload_fileobj(file.file, S3_BUCKET_NAME, filenameNew)
+    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{randomize_it}_{categoryName}_{file.filename}"
 
     # Új dokumentum mentése az adatbázisba
     if role == 'user':
