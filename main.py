@@ -78,7 +78,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/catalog", StaticFiles(directory="catalog"), name="catalog")
 app.mount("/main", StaticFiles(directory="main"), name="main")
 app.mount("/moderation", StaticFiles(directory="moderation"), name="moderation")
-
+app.mount("/trending", StaticFiles(directory="trending"), name="trending")
 
 handler = Mangum(app)
 # A token generálása
@@ -785,7 +785,25 @@ def get_categories(db: Session = Depends(get_db)):
 
 @app.get("/files/{category_id}")
 def get_documents_by_category(category_id: str, db: Session = Depends(get_db)):
-    documents = db.query(Document).filter(Document.category_id == category_id, Document.status == "approved").all()
+
+    if category_id == "trending":
+        # Lekérdezzük a 5 legnépszerűbb dokumentumot
+        documents = db.query(Document) \
+            .filter(Document.status == "approved") \
+            .order_by(Document.popularity.desc()) \
+            .limit(5) \
+            .all()
+        
+    elif category_id == "recent":
+        # Top 5 legújabb dokumentum az 'uploaded_at' mező szerint csökkenő sorrendben
+        documents = db.query(Document) \
+            .filter(Document.status == "approved") \
+            .order_by(Document.uploaded_at.desc()) \
+            .limit(5) \
+            .all()
+    else:
+        documents = db.query(Document).filter(Document.category_id == category_id, Document.status == "approved").all()
+
 
     return [
         {
@@ -795,9 +813,11 @@ def get_documents_by_category(category_id: str, db: Session = Depends(get_db)):
             "file_path": doc.file_path,
             "status": doc.status,
             "uploaded_by": doc.uploaded_by,
+            "category_id": doc.category_id,
             "uploaded_at": doc.uploaded_at.isoformat(),
             "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",
             "download_url": f"/download/{doc.file_path.split('/')[-1]}",
+            "uploaded_at_display": datetime.strptime(doc.uploaded_at.isoformat(), "%Y-%m-%dT%H:%M:%S.%f").strftime("%-m/%-d/%Y"),
         }
         for doc in documents
     ]

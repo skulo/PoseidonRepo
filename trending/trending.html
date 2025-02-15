@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document Catalog</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="stylet.css" />
   </head>
   <body>
     <header>
@@ -35,29 +35,23 @@
             </li>
             <li><a href="#" id="logout">Logout</a></li>
             <li><a href="/static/login.html" id="navbar-login">Login</a></li>
-            <li><a href="/trending/trending.html">Trending</a></li>
           </ul>
         </div>
       </nav>
     </header>
 
-    <div id="upload-section" style="display: none">
-      <h2>Fájl feltöltése a kategóriához</h2>
-      <input type="file" id="file-input" />
-      <input type="text" id="title-input" placeholder="Title" />
-      <input type="text" id="description-input" placeholder="Description" />
-      <button id="upload-button" disabled>Upload</button>
-    </div>
-
     <section id="documents">
-      <h2 id="documents-category-title">Documents</h2>
+      <h2 id="documents-category-title">Trending Documents</h2>
       <div id="documents-list"></div>
     </section>
 
-    <script src="catalog.js"></script>
+    <section id="documents">
+      <h2 id="documents-category-title">Recent Documents</h2>
+      <div id="recent-list"></div>
+    </section>
 
-    <h2>Felhasználói adatok</h2>
-    <button onclick="getUserData()">Felhasználói adatok lekérése</button>
+    <script src="trending.js"></script>
+
     <p id="user_data" style="display: none"></p>
     <script>
       window.onload = async function () {

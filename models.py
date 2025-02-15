@@ -41,6 +41,7 @@ class Document(Base):
     status = Column(String, nullable=False)
     category_id = Column(String, ForeignKey('categories.id'), nullable=False)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
+    popularity = Column(Integer, default=0)
 
 class ModerationLog(Base):
     __tablename__ = 'moderation_logs'

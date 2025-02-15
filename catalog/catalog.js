@@ -30,6 +30,24 @@ async function loadDocuments(categoryId = null) {
     const documentsList = document.getElementById('documents-list');
     documentsList.innerHTML = ''; // Törlés a régi listáról
 
+    const responseCat = await fetch("http://127.0.0.1:8000/categories");
+    const categories = await responseCat.json();
+	
+
+    // Keresd meg a kategóriát, amelyben a selectedCategoryId szerepel
+    const currentCategory = categories
+    .map(cat => ({
+        category: cat,
+        child: cat.children.find(catchild => catchild.id === selectedCategoryId)
+    }))
+    .find(item => item.child !== undefined);
+
+    if (currentCategory) {
+    const categoryName = currentCategory.category.name;
+    const childName = currentCategory.child.name;
+    document.getElementById("documents-category-title").innerText = `${categoryName} / ${childName}`;
+    }
+
 
     documents.forEach(async doc => {
         if (doc.status === 'approved') {
@@ -37,19 +55,33 @@ async function loadDocuments(categoryId = null) {
             const docCard = document.createElement('div');
             docCard.className = 'document-card';
             
-            const docInfo = document.createElement('div');
-            docInfo.innerHTML = `
-                <h3>${doc.title}</h3>
-                <p>${doc.description}</p>
-                <p>Uploaded at: ${doc.uploaded_at}</p>
-            `;
+
+            const docContainer = document.createElement('div');
+
+            // Upload date
+            const docDate = document.createElement('span');
+            docDate.className = 'document-date';
+            docDate.innerText = doc.uploaded_at_display;
+
+            // Document title
+            const docTitle = document.createElement('span');
+            docTitle.className = 'document-title';
+            docTitle.innerText = doc.title;
+
+
+            // Document description
+            const docDescription = document.createElement('span');
+            docDescription.className = 'document-description';
+            docDescription.innerText = doc.description;
             
             const docActions = document.createElement('div');
-            const downloadButton = document.createElement('button');
-            downloadButton.innerText = 'Download';
-            downloadButton.onclick = () => window.location.href = doc.download_url;
+            docActions.className = 'document-actions';
 
-            docActions.appendChild(downloadButton);
+            //const downloadButton = document.createElement('button');
+            //downloadButton.innerText = 'Download';
+            //downloadButton.onclick = () => window.location.href = doc.download_url;
+
+            //docActions.appendChild(downloadButton);
 
 
             const user_data = await getUserData();
@@ -70,7 +102,7 @@ async function loadDocuments(categoryId = null) {
                 
                 editButton.onclick = async () => {
                     deleteButton.style.display = 'none';
-                    downloadButton.style.display = 'none';
+                    //downloadButton.style.display = 'none';
                     editButton.style.display = 'none';
 
                     const title = doc.title;
@@ -111,11 +143,12 @@ async function loadDocuments(categoryId = null) {
                     docActions.appendChild(submitButton);
 
                     cancelButton.onclick = () => {
+                        
                         fileInput.style.display = 'none';
                         cancelButton.style.display = 'none';
                         submitButton.style.display = 'none';
                         deleteButton.style.display = 'inline-block';  // Eredeti gombok vissza
-                        downloadButton.style.display = 'inline-block';
+                        //downloadButton.style.display = 'inline-block';
                         editButton.style.display = 'inline-block';
                         return;
                     };
@@ -182,7 +215,7 @@ async function loadDocuments(categoryId = null) {
                     cancelButton.style.display = 'none';
                     submitButton.style.display = 'none';
                     deleteButton.style.display = 'inline-block';  // Eredeti gombok vissza
-                    downloadButton.style.display = 'inline-block';
+                    //downloadButton.style.display = 'inline-block';
                     editButton.style.display = 'inline-block';
                 }
                 }
@@ -220,13 +253,25 @@ async function loadDocuments(categoryId = null) {
                 docActions.appendChild(deleteButton);
                 docActions.appendChild(editButton);
 
+                
+
             };
 
             }
 
-            docCard.appendChild(docInfo);
-            docCard.appendChild(docActions);
 
+            docContainer.appendChild(docDate);
+            docContainer.appendChild(docTitle);
+            docContainer.appendChild(docDescription);
+            docContainer.appendChild(docActions);
+
+            docCard.appendChild(docContainer);
+                            // Click event for download
+                docCard.onclick = (e) => {
+                    if (!e.target.closest('.document-actions')) { 
+                        window.location.href = doc.download_url;
+                    }
+                };
             documentsList.appendChild(docCard);
         }
     });

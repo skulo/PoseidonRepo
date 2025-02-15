@@ -145,6 +145,10 @@ body {
   flex: 2;
 }
 
+.documents-category {
+  flex: 1;
+}
+
 .document-actions {
   display: flex;
   gap: 10px;
