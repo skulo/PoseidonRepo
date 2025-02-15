@@ -564,20 +564,33 @@ async function loadDocuments(categoryId = null) {
 
 async function getUserData() {
     const token = localStorage.getItem('token');
-    if (!token) {
-        //alert('Először jelentkezz be!');
-        return;
-    }
-    
-    const response = await fetch('http://127.0.0.1:8000/me', {
-        method: 'GET',
-        headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const data = await response.json();
-    document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
-    return data;
+    if (!token) return;
 
+    try {
+        // Felhasználói adatok lekérése
+        const response = await fetch('http://127.0.0.1:8000/me', {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        const userData = await response.json();
+        document.getElementById('userName').innerText = userData.name;
+        document.getElementById('userEmail').innerText = userData.email;
+        document.getElementById('userRole').innerText = userData.role;
+
+        // Pending dokumentumok lekérése
+        const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+        const pendingCount = await pendingResponse.json();
+
+        document.getElementById('pendingDocs').innerText = pendingCount;
+        return userData;
+    } catch (error) {
+        console.error("Hiba a felhasználói adatok lekérése közben:", error);
+    }
 }
+
+// Az oldal betöltésekor lekérjük az adatokat
+window.onload = getUserData;
 
 
 // Dokumentumok betöltése az oldal betöltésekor
@@ -587,15 +600,18 @@ loadDocuments();
 
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('token');
-    const uploadSection = document.getElementById('upload-section');
+    //const uploadSection = document.getElementById('upload-section');
     const logoutButton = document.getElementById('logout');
     const moderationButton = document.getElementById('moderation');
-
+    const loginButton = document.getElementById('navbar-login');
+    const userDropdown = document.getElementById('userDropdown');
 
     // Ha van token, akkor megjelenítjük a feltöltési szekciót
     if (token) {
 
-        
+        userDropdown.style.display = 'block';
+        loginButton.style.display = 'none';
+        //uploadSection.style.display = 'block';
         logoutButton.style.display = 'block';
         const user_data = await getUserData();
     
@@ -610,7 +626,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } else {
         // Ha nincs token, elrejtjük a szekciót
-        uploadSection.style.display = 'none';
+        userDropdown.style.display = 'none';
+        loginButton.style.display = 'block';
+        //uploadSection.style.display = 'none';
         logoutButton.style.display = 'none';
     }
 });

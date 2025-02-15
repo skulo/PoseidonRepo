@@ -9,59 +9,52 @@
   <body>
     <header>
       <nav class="navbar">
-        <div class="dropdown">
-          <button class="dropbtn">
-            Kategóriák
-            <i class="fa fa-caret-down"></i>
-          </button>
-          <div class="dropdown-content">
-            <div class="header">
-              <h2>Mega Menu</h2>
-            </div>
-            <div class="row" id="category-container">
-              <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
-            </div>
-          </div>
-        </div>
-
         <div class="navbar-container">
           <ul class="navbar-links">
-            <li><a href="/catalog/catalog.html">Katalógus</a></li>
-            <li><a href="/products">Products</a></li>
-            <li><a href="/about">About</a></li>
+            <li class="dropdown">
+              <button class="dropbtn">
+                Katalógus
+                <i class="fa fa-caret-down"></i>
+              </button>
+              <div class="dropdown-content">
+                <div class="header">
+                  <h2>Fájlkategóriák</h2>
+                </div>
+                <div class="row" id="category-container">
+                  <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
+                </div>
+              </div>
+            </li>
+
             <li>
               <a href="/moderation/moderation.html" id="moderation"
                 >Moderáció</a
               >
             </li>
+            <li><a href="/trending/trending.html">Főoldal</a></li>
+
+            <li class="dropdown" id="userDropdown">
+              <button class="dropbtn" id="userDropdownBtn">
+                Logged in as <span id="userName">Loading...</span>
+              </button>
+              <div class="dropdown-content" id="userDropdownContent">
+                <p class="header"></p>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>Role:</strong> <span id="userRole"></span></p>
+                <p>
+                  <strong>Pending Docs:</strong> <span id="pendingDocs"></span>
+                </p>
+              </div>
+            </li>
             <li><a href="#" id="logout">Logout</a></li>
           </ul>
-          <div class="navbar-actions">
-            <a href="/cart" class="navbar-cart">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-              >
-                <circle cx="9" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M4 4h2l3 9h8l3-9h2" />
-              </svg>
-              <span>Cart</span>
-            </a>
-            <a href="/static/login.html" class="navbar-login">Login</a>
-          </div>
         </div>
       </nav>
     </header>
 
     <section id="documents">
       <h2>Moderációs oldal</h2>
-      <div id="pending-files-container"></div>
+      <div id="documents-list"></div>
     </section>
     <p id="user_data" style="display: none"></p>
 

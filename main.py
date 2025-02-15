@@ -902,6 +902,7 @@ def get_pending_files(db: Session = Depends(get_db)):
             "description": doc.description,
             "file_path": doc.file_path,
             "status": doc.status,
+            "category_id": doc.category_id,
             "uploaded_by": doc.uploaded_by,
             "uploaded_at": doc.uploaded_at.isoformat(),
             "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",

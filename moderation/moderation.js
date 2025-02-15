@@ -3,20 +3,15 @@ async function loadPendingFiles() {
     if (!token) {
         alert("Nincs bejelentkezve.");
         window.location.href = "/static/login.html";
-
         return;
     }
 
     const user_data = await getUserData();
-    
-        const role = user_data.role;
-        if (role === 'user') {
-            alert("Nincs jogosultságod a moderációs oldal megtekintésére.");
-            window.location.href = "/catalog/catalog.html";
-
-        }
-
-    
+    if (user_data.role === 'user') {
+        alert("Nincs jogosultságod a moderációs oldal megtekintésére.");
+        window.location.href = "/catalog/catalog.html";
+        return;
+    }
 
     const response = await fetch('/moderations/files', {
         method: 'GET',
@@ -29,25 +24,52 @@ async function loadPendingFiles() {
         alert("Nem sikerült betölteni a függő fájlokat.");
         return;
     }
+    const responseCat = await fetch("http://127.0.0.1:8000/categories");
+    const categories = await responseCat.json();
 
     const files = await response.json();
-    const container = document.getElementById('pending-files-container');
-    container.innerHTML = "";
+    const documentsList = document.getElementById('documents-list');
+    documentsList.innerHTML = "";
 
     files.forEach(file => {
+        // Formázott dátum
+        const uploadDate = new Date(file.uploaded_at);
+        const formattedDate = `${uploadDate.getMonth() + 1}/${uploadDate.getDate()}/${uploadDate.getFullYear()}`;
+
         const fileElement = document.createElement('div');
-        fileElement.classList.add('file-item');
+        fileElement.classList.add('document-card');
+
+        const currentCategory = categories
+        .map(cat => ({
+            category: cat,
+            child: cat.children.find(catchild => catchild.id === file.category_id)
+        }))
+        .find(item => item.child !== undefined);
+
+        const categoryText = currentCategory 
+        ? `${currentCategory.category.name} / ${currentCategory.child.name}` 
+        : "Ismeretlen kategória";
 
         fileElement.innerHTML = `
-            <h3>${file.title}</h3>
-            <p>${file.description}</p>
-            <a href="${file.download_url}" target="_blank"><button>Letöltés</button></a>
-            <button class="approve-btn" data-id="${file.id}">Jóváhagyás</button>
-            <input type="text" class="reject-reason" placeholder="Elutasítás oka">
-            <button class="reject-btn" data-id="${file.id}" disabled>Elutasítás</button>
+            <div class="document-date">${formattedDate}</div>
+            <div class="documents-category">${categoryText}</div>
+            <div class="document-title">${file.title}</div>
+            <div class="document-description">${file.description}</div>
+            <div class="document-actions">
+                <button class="approve-btn" data-id="${file.id}">Jóváhagyás</button>
+                <input type="text" class="reject-reason" placeholder="Elutasítás oka">
+                <button class="reject-btn" data-id="${file.id}" disabled>Elutasítás</button>
+            </div>
         `;
 
-        // Az elutasítás gomb aktiválása, ha az input mező ki van töltve
+        // Kattintás = letöltés
+        fileElement.addEventListener('click', (event) => {
+            if (!event.target.classList.contains('approve-btn') && !event.target.classList.contains('reject-btn') && !event.target.classList.contains('reject-reason')) {
+                window.open(file.download_url, '_blank');
+            }
+        });
+
+        // Elutasítás input eseménykezelő
         const rejectInput = fileElement.querySelector('.reject-reason');
         const rejectBtn = fileElement.querySelector('.reject-btn');
         rejectInput.addEventListener('input', () => {
@@ -66,9 +88,10 @@ async function loadPendingFiles() {
             loadPendingFiles();
         });
 
-        container.appendChild(fileElement);
+        documentsList.appendChild(fileElement);
     });
 }
+
 
 // Jóváhagyás függvény
 async function approveFile(fileId) {
@@ -231,23 +254,33 @@ const response = await fetch('http://127.0.0.1:8000/me', {
 
 
 async function getUserData() {
-const token = localStorage.getItem('token');
-if (!token) {
-    alert('Először jelentkezz be!');
-    window.location.href = "/static/login.html";
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-    return;
+    try {
+        // Felhasználói adatok lekérése
+        const response = await fetch('http://127.0.0.1:8000/me', {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        const userData = await response.json();
+        document.getElementById('userName').innerText = userData.name;
+        document.getElementById('userEmail').innerText = userData.email;
+        document.getElementById('userRole').innerText = userData.role;
+
+        // Pending dokumentumok lekérése
+        const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+        const pendingCount = await pendingResponse.json();
+
+        document.getElementById('pendingDocs').innerText = pendingCount;
+        return userData;
+    } catch (error) {
+        console.error("Hiba a felhasználói adatok lekérése közben:", error);
+    }
 }
 
-const response = await fetch('http://127.0.0.1:8000/me', {
-    method: 'GET',
-    headers: { 'Authorization': 'Bearer ' + token }
-});
-const data = await response.json();
-document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
-return data;
-}
-
+window.onload =getUserData;
 // Dinamikus kategória betöltés
 async function loadCategories() {
 const response = await fetch('http://127.0.0.1:8000/categories');

@@ -9,30 +9,45 @@
   <body>
     <header>
       <nav class="navbar">
-        <div class="dropdown">
-          <button class="dropbtn">
-            Katalógus
-            <i class="fa fa-caret-down"></i>
-          </button>
-          <div class="dropdown-content">
-            <div class="header">
-              <h2>Fájlkategóriák</h2>
-            </div>
-            <div class="row" id="category-container">
-              <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
-            </div>
-          </div>
-        </div>
-
         <div class="navbar-container">
           <ul class="navbar-links">
+            <li class="dropdown">
+              <button class="dropbtn">
+                Katalógus
+                <i class="fa fa-caret-down"></i>
+              </button>
+              <div class="dropdown-content">
+                <div class="header">
+                  <h2>Fájlkategóriák</h2>
+                </div>
+                <div class="row" id="category-container">
+                  <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
+                </div>
+              </div>
+            </li>
+
             <li>
               <a href="/moderation/moderation.html" id="moderation"
                 >Moderáció</a
               >
             </li>
-            <li><a href="#" id="logout">Logout</a></li>
+            <li><a href="/trending/trending.html">Főoldal</a></li>
             <li><a href="/static/login.html" id="navbar-login">Login</a></li>
+
+            <li class="dropdown" id="userDropdown">
+              <button class="dropbtn" id="userDropdownBtn">
+                Logged in as <span id="userName">Loading...</span>
+              </button>
+              <div class="dropdown-content" id="userDropdownContent">
+                <p class="header"></p>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>Role:</strong> <span id="userRole"></span></p>
+                <p>
+                  <strong>Pending Docs:</strong> <span id="pendingDocs"></span>
+                </p>
+              </div>
+            </li>
+            <li><a href="#" id="logout">Logout</a></li>
           </ul>
         </div>
       </nav>
@@ -66,26 +81,6 @@
           headers: { Authorization: "Bearer " + token },
         });
       };
-
-      async function getUserData() {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          //alert('Először jelentkezz be!');
-          return;
-        }
-
-        const response = await fetch("http://127.0.0.1:8000/me", {
-          method: "GET",
-          headers: { Authorization: "Bearer " + token },
-        });
-        const data = await response.json();
-        document.getElementById("user_data").innerText = JSON.stringify(
-          data,
-          null,
-          2
-        );
-        return data;
-      }
 
       // Dinamikus kategória betöltés
       async function loadCategories() {
