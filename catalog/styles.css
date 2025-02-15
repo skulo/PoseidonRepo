@@ -11,17 +11,30 @@ body {
 /* Navigációs sáv */
 .navbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   background-color: black;
   padding: 15px 30px;
-  border-bottom: 1px solid #fbfbfb;
+  border-bottom: 1px solid #ffbb00;
 }
 
 .navbar-links {
   list-style: none;
   display: flex;
-  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  gap: 80px;
+  padding: 0;
+  margin: 0;
+}
+
+/* A navbar jobb oldalán lévő elemek */
+.navbar-right {
+  display: flex;
+  justify-content: flex-end; /* Jobbra igazítás */
+  align-items: center;
+  gap: 20px; /* Távolság a két elem között */
+  margin-left: auto; /* Bal oldalról eltolás */
 }
 
 .navbar-links li {
@@ -56,27 +69,28 @@ body {
   transition: transform 0.3s ease-in-out; /* Animáció */
 }
 
-/* Dropdown menü stílusai */
-.dropdown-content {
-  display: none; 
-}
+
+
 /* Hover állapot */
 .navbar-links li a:hover::after {
   transform: scaleX(1); /* Animálva jelenik meg */
 }
 
 /* Kategória dropdown */
-/* Kategória dropdown */
 .dropdown {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .dropbtn {
   background: none;
   color: white;
-  font-size: 16px;
+  font-size: 14px;
   border: none;
   cursor: pointer;
+  padding: 5px 0; /* Ugyanolyan padding, mint a sima linkeknél */
+  display: inline-block;
   transition: color 0.3s ease-in-out; /* Hover effekt a dropdown triggerre */
 }
 
@@ -85,15 +99,19 @@ body {
 }
 
 .dropdown-content {
-  display: none; /* Kezdetben rejtve */
+  top: 100%; 
+  display: none;
   position: absolute;
   background-color: black;
   border: 1px solid #faca2a;
   min-width: 200px;
   padding: 10px;
-  opacity: 0; /* Kezdeti átlátszóság */
-  transition: opacity 0.3s ease-in-out; /* Áttűnés animáció */
-  pointer-events: none; /* Ne lehessen interakcióba lépni, amíg nem látszik */
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none;
+  left: 0;
+  z-index: 1000;
+  white-space: nowrap; /* Megakadályozza, hogy új sorba törjön */
 }
 
 .dropdown-content .header {
@@ -114,11 +132,19 @@ body {
 
 /* Hoverre megjelenő dropdown */
 .dropdown:hover .dropdown-content {
-  display: block;
-  opacity: 1; /* Megjelenik a menü */
-  pointer-events: auto; /* Mostantól interakcióba léphetünk a menü elemeivel */
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+  flex-direction: row; /* Fő kategóriák egymás mellett */
+  gap: 20px; /* Távolság a fő kategóriák között */
+  align-items: flex-start; /* Fent kezdődjenek */
 }
-
+#category-container {
+  display: flex;
+  flex-direction: row; /* A félévek egymás mellett legyenek */
+  gap: 30px; /* Távolság a fő kategóriák között */
+  align-items: flex-start;
+}
 .dropbtn:hover, .dropdown:hover .dropbtn {
   color: #ffbb00; /* Hoverkor a szöveg sárga lesz */
 }
@@ -250,4 +276,34 @@ button.edit-button:hover {
 .dropdown-content span {
   color: #ffbb00;
   font-weight: bold;
+}
+
+
+/* A fő kategória oszlop */
+.column {
+  display: flex;
+  flex-direction: column; /* Az alkategóriák egymás alatt */
+  gap: 5px;
+}
+
+/* Kategória cím kiemelése */
+.column h3 {
+  margin: 0;
+  color: #faca2a; /* Sárga kiemelés */
+  font-size: 16px;
+  border-bottom: 1px solid #faca2a; /* Aláhúzás */
+  padding-bottom: 5px;
+}
+
+/* Alkategóriák linkek */
+.column a {
+  color: white;
+  text-decoration: none;
+  padding: 3px 0;
+  transition: color 0.3s ease-in-out;
+}
+
+.column a:hover {
+  text-decoration: underline;
+  color: #ffbb00;
 }

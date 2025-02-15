@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, timezone
 import json
 import os
+import re
 from sqlite3 import IntegrityError
 import string
 from typing import Dict, List, Literal, Optional
+import unicodedata
 from uuid import uuid4
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -13,6 +15,7 @@ import random
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy import UUID
+import urllib
 from models import SessionLocal, User, Document, Category
 from sqlalchemy.orm import Session, Query
 from passlib.context import CryptContext
@@ -22,6 +25,7 @@ from models import VerificationRun, Verification, Proof, EmailProof, Verificatio
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from urllib.parse import quote
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -300,7 +304,24 @@ async def index():
     return open("static/index.html").read()
 
 
+def sanitize_filename(filename: str) -> str:
+    """
+    Megtisztítja a fájlnevet:
+    - Eltávolítja az érvénytelen karaktereket
+    - Lecseréli az ékezetes karaktereket (pl. ő -> o, é -> e)
+    - Megőrzi az eredeti fájlkiterjesztést
+    """
+    # Fájlkiterjesztés megőrzése
+    name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, '')
 
+    # Ékezetes karakterek normalizálása
+    name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('ascii')
+
+    # Csak engedélyezett karakterek: betűk, számok, kötőjel és aláhúzás
+    name = re.sub(r'[^a-zA-Z0-9_\-]', '_', name)
+
+    # Ha nincs kiterjesztés, nem kell pont
+    return f"{name}.{ext}" if ext else name
 
 s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
 
@@ -342,10 +363,13 @@ async def upload_file(
 
     categoryName = category.name
     randomize_it = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-    filenameNew = f"{randomize_it}_{categoryName}_{file.filename}"
+    sanitized_category_name = sanitize_filename(categoryName)
+    sanitized_filename = sanitize_filename(file.filename)
+
+    filenameNew = f"{randomize_it}_{sanitized_category_name}_{sanitized_filename}"
     # Fájl feltöltése az S3-ba
     s3.upload_fileobj(file.file, S3_BUCKET_NAME, filenameNew)
-    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{randomize_it}_{categoryName}_{file.filename}"
+    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{filenameNew}"
 
     # Új dokumentum mentése az adatbázisba
     if role == 'user':
