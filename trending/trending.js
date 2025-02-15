@@ -17,6 +17,11 @@ document.getElementById('logout').addEventListener('click', () => {
 // Dokumentumok betöltése
 async function loadDocuments(categoryId = null) {
 
+    if (categoryId) {
+        window.location.href = `/catalog/catalog.html?selectedCategoryId=${categoryId}`;
+
+    }
+
     const responseCat = await fetch("http://127.0.0.1:8000/categories");
     const categories = await responseCat.json();
 
@@ -189,6 +194,10 @@ async function loadDocuments(categoryId = null) {
                     });
                     const data = await response.json();
                     console.log("Edit upload response:", data);
+                    if (data.message === 'ERROR') {
+                        alert('File exceeded the maximum size of 5MB. Current size: ' + data.error + 'MB');
+                        return;
+                    }
                     if (data.message === 'File is uploaded successfully.') {
                         alert('File is uploaded successfully.');
                     }
@@ -275,9 +284,17 @@ async function loadDocuments(categoryId = null) {
 
             docCard.appendChild(docContainer);
                             // Click event for download
-                docCard.onclick = (e) => {
+                docCard.onclick = async (e) => {
                     if (!e.target.closest('.document-actions')) { 
-                        window.location.href = doc.download_url;
+                        try {
+                            await fetch(`/api/documents/${doc.id}/increase_popularity`, {
+                                method: "POST",
+                            });
+                
+                            window.location.href = doc.download_url;
+                        } catch (error) {
+                            console.error("Hiba történt a popularity növelése közben:", error);
+                        }
                     }
                 };
             documentsList.appendChild(docCard);
@@ -435,6 +452,11 @@ async function loadDocuments(categoryId = null) {
                     });
                     const data = await response.json();
                     console.log("Edit upload response:", data);
+
+                    if (data.message === 'ERROR') {
+                        alert('File exceeded the maximum size of 5MB. Current size: ' + data.error + 'MB');
+                        return;
+                    }
                     if (data.message === 'File is uploaded successfully.') {
                         alert('File is uploaded successfully.');
                     }
@@ -521,9 +543,17 @@ async function loadDocuments(categoryId = null) {
 
             docCard.appendChild(docContainer);
                             // Click event for download
-                docCard.onclick = (e) => {
+                docCard.onclick = async (e) => {
                     if (!e.target.closest('.document-actions')) { 
-                        window.location.href = doc.download_url;
+                        try {
+                            await fetch(`/api/documents/${doc.id}/increase_popularity`, {
+                                method: "POST",
+                            });
+                
+                            window.location.href = doc.download_url;
+                        } catch (error) {
+                            console.error("Hiba történt a popularity növelése közben:", error);
+                        }
                     }
                 };
             recentList.appendChild(docCard);

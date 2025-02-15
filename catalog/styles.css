@@ -8,13 +8,14 @@ body {
 }
 
 /* Navigációs sáv */
+/* Navigációs sáv */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: black;
   padding: 15px 30px;
-  border-bottom: 1px solid #faca2a;
+  border-bottom: 1px solid #fbfbfb;
 }
 
 .navbar-links {
@@ -23,16 +24,48 @@ body {
   gap: 20px;
 }
 
+.navbar-links li {
+  position: relative;
+}
+
+/* Hover effekt a dropdown trigger szövegre */
 .navbar-links li a {
   color: white;
   text-decoration: none;
   font-size: 14px;
+  padding: 5px 0;
+  position: relative;
+  display: inline-block;
+  transition: color 0.3s ease-in-out;
 }
 
 .navbar-links li a:hover {
-  text-decoration: underline;
+  color: #ffbb00;  /* Hoverkor sárga szín */
 }
 
+.navbar-links li a::after {
+  content: '';  /* Pseudo-element létrehozása */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;  /* A csík vastagsága */
+  background-color: #ffbb00;  /* A csík színe */
+  transform: scaleX(0);  /* Alapállapotban a csík nem látszik */
+  transform-origin: center;
+  transition: transform 0.3s ease-in-out; /* Animáció */
+}
+
+/* Dropdown menü stílusai */
+.dropdown-content {
+  display: none; 
+}
+/* Hover állapot */
+.navbar-links li a:hover::after {
+  transform: scaleX(1); /* Animálva jelenik meg */
+}
+
+/* Kategória dropdown */
 /* Kategória dropdown */
 .dropdown {
   position: relative;
@@ -44,15 +77,23 @@ body {
   font-size: 16px;
   border: none;
   cursor: pointer;
+  transition: color 0.3s ease-in-out; /* Hover effekt a dropdown triggerre */
+}
+
+.dropbtn:hover {
+  color: #ffbb00; /* Hoverkor a szöveg sárga lesz */
 }
 
 .dropdown-content {
-  display: none;
+  display: none; /* Kezdetben rejtve */
   position: absolute;
   background-color: black;
   border: 1px solid #faca2a;
   min-width: 200px;
   padding: 10px;
+  opacity: 0; /* Kezdeti átlátszóság */
+  transition: opacity 0.3s ease-in-out; /* Áttűnés animáció */
+  pointer-events: none; /* Ne lehessen interakcióba lépni, amíg nem látszik */
 }
 
 .dropdown-content .header {
@@ -69,6 +110,17 @@ body {
 
 .dropdown-content a:hover {
   text-decoration: underline;
+}
+
+/* Hoverre megjelenő dropdown */
+.dropdown:hover .dropdown-content {
+  display: block;
+  opacity: 1; /* Megjelenik a menü */
+  pointer-events: auto; /* Mostantól interakcióba léphetünk a menü elemeivel */
+}
+
+.dropbtn:hover, .dropdown:hover .dropbtn {
+  color: #ffbb00; /* Hoverkor a szöveg sárga lesz */
 }
 
 /* Dokumentum lista */
@@ -188,3 +240,14 @@ button.edit-button:hover {
 
 
 
+
+
+#userName, #userEmail, #userRole {
+  color: #ffbb00;
+  font-weight: bold;
+}
+
+.dropdown-content span {
+  color: #ffbb00;
+  font-weight: bold;
+}

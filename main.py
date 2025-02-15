@@ -316,7 +316,26 @@ async def upload_file(
 ) -> Dict[str, str]:
     """
     Feltölti a fájlt az S3-ba és elmenti a dokumentum adatait az adatbázisba.
+
+
+    
     """
+
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+    # Fájlméret ellenőrzése
+    file.file.seek(0, 2)  # Seek to end to get size
+    file_size = file.file.tell()
+    file.file.seek(0)  # Seek back to start
+    file_size_in_mb = file_size / (1024 * 1024)
+
+    if file_size > MAX_FILE_SIZE:
+        return {
+            "message": "ERROR",
+            "error": str(file_size_in_mb)
+        }
+    
+
     print(f"Category ID: {category_id}, Uploaded By: {uploaded_by}")
 
     category = db.query(Category).filter(Category.id == category_id).first()
@@ -438,6 +457,10 @@ async def download_file(filename: str):
 def get_current_user_info(user: User = Depends(get_current_user)):
     return user
 
+
+@app.get("/pendingdocs/{userId}")
+def get_users_pending_docs_count(userId: str, db: Session = Depends(get_db)):
+    return db.query(Document).filter(Document.uploaded_by == userId, Document.status == "pending").count()
 
 @app.get("/files", response_model=List[Dict[str, str]])
 async def get_files(db: Session = Depends(get_db)):
@@ -886,4 +909,17 @@ async def reject_file(file_id: str, reason: str, db: Session = Depends(get_db)):
     #file.rejection_reason = reason
     db.commit()
     return {"message": "File rejected successfully"}
+
+
+@app.post("/api/documents/{document_id}/increase_popularity")
+def increase_popularity(document_id: str, db: Session = Depends(get_db)):
+    document = db.query(Document).filter(Document.id == document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    document.popularity += 1
+    db.commit()
+    db.refresh(document)
+
+    return {"message": "Popularity increased", "new_popularity": document.popularity}
 
