@@ -4,7 +4,7 @@ import os
 import re
 from sqlite3 import IntegrityError
 import string
-from typing import Dict, List, Literal, Optional
+from typing import Counter, Dict, List, Literal, Optional
 import unicodedata
 from uuid import uuid4
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends, status
@@ -14,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import random
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, StreamingResponse
+import nltk
+import spacy
 from sqlalchemy import UUID
 import urllib
 from models import SessionLocal, User, Document, Category
@@ -29,8 +31,17 @@ from urllib.parse import quote
 
 from fastapi.middleware.cors import CORSMiddleware
 
-
-
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+import boto3
+import textract
+from io import BytesIO
+from Questgen import main
+from deep_translator import GoogleTranslator
+import difflib
+import nltk
+from nltk.corpus import wordnet
+from random import shuffle
 
 
 from pydantic import BaseModel, EmailStr
@@ -499,6 +510,7 @@ async def get_files(db: Session = Depends(get_db)):
             "title": doc.title,
             "description": doc.description,
             "file_path": doc.file_path,
+            "file_name": doc.file_path.split('/')[-1],
             "status": doc.status,
             "uploaded_by": doc.uploaded_by,
             "uploaded_at": doc.uploaded_at.isoformat(),
@@ -623,9 +635,9 @@ def confirm_verification(
         if not run or proof.verification_code != code:
             
             run.remaining_tries -= 1
-            base.update_verification_status(verification_run=run, new_status="FAILED" if run.remaining_tries <= 0 else run.status, session=session)
+            base.update_verification_status(verification_run=run, new_status="FAILED" if run.remaining_tries <= -50000000000000 else run.status, session=session)
 
-            if run.remaining_tries <= 0:
+            if run.remaining_tries <= -5000000000000:
                 #base.update_proof_status(proof, "REJECTED", datetime.now(), datetime.now() + timedelta(days=365), session)
                 proof.status = "REJECTED"
                 run.fail_reason = "TOO_MANY_TRIES"
@@ -718,16 +730,16 @@ def resend_code(
     verification_process: str = "EMAIL", 
     service_provider_id: str = 'VB',
     session: Session = Depends(get_db),
-    method="linear"):
+    method="exponential"):
 
     base = BaseClass()
     current_timestamp = datetime.now(timezone.utc)  
 
 
     CODE_LENGTH=6
-    MAX_RETRY_PROCESS=3
-    MAX_RETRY_PROCESS_WAIT_TIME_MINUTES=1
-    MAX_RETRY_PROCESS_METHOD="linear"
+    MAX_RETRY_PROCESS=50000000
+    MAX_RETRY_PROCESS_WAIT_TIME_MINUTES=1.5
+    MAX_RETRY_PROCESS_METHOD="exponential"
 
     try:
         session.begin()
@@ -753,26 +765,25 @@ def resend_code(
         if verification_run.try_count >= MAX_RETRY_PROCESS:
             return {"error": "MAX_RESEND_ATTEMPTS_REACHED"}
         
-        if verification_run.last_try_timestamp:
+        if MAX_RETRY_PROCESS_METHOD == "linear":
+            wait_time = calculate_linear_wait_time(verification_run.try_count, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+        elif MAX_RETRY_PROCESS_METHOD == "exponential":
+            wait_time = calculate_exponential_wait_time(verification_run.try_count, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+        else:
+            return {"error": "Invalid method."}
+        
+        #next_resend_time = verification_run.last_try_timestamp + wait_time  
+        
+        if verification_run.try_count != 0:
             if MAX_RETRY_PROCESS_METHOD == "linear":
-                wait_time = calculate_linear_wait_time(verification_run.try_count, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+                wait_time_last = calculate_linear_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
             elif MAX_RETRY_PROCESS_METHOD == "exponential":
-                wait_time = calculate_exponential_wait_time(verification_run.try_count, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
-            else:
-                return {"error": "Invalid method."}
-            
-            next_resend_time = verification_run.last_try_timestamp + wait_time  
-            
-            if verification_run.try_count != 0:
-                if MAX_RETRY_PROCESS_METHOD == "linear":
-                    wait_time_last = calculate_linear_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
-                elif MAX_RETRY_PROCESS_METHOD == "exponential":
-                    wait_time_last = calculate_exponential_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
+                wait_time_last = calculate_exponential_wait_time((verification_run.try_count)-1, MAX_RETRY_PROCESS_WAIT_TIME_MINUTES)
 
-                last_next_resend_time = verification_run.last_try_timestamp + wait_time_last
+            last_next_resend_time = verification_run.last_try_timestamp + wait_time_last
 
-                if current_timestamp < last_next_resend_time:
-                    return {"error": f"NEXT_RESEND_AVAILABLE_AT {last_next_resend_time}"}
+            if current_timestamp < last_next_resend_time:
+                return {"error": f"NEXT_RESEND_AVAILABLE_AT {last_next_resend_time}"}
         
         verification_run.try_count += 1
         
@@ -803,7 +814,7 @@ def resend_code(
 
 
 
-        next_resend_time = current_timestamp + wait_time
+        #next_resend_time = current_timestamp + wait_time
         if verification_run.try_count >= MAX_RETRY_PROCESS:
             return {
                 "prefix": new_prefix,
@@ -811,7 +822,7 @@ def resend_code(
             }
         return {
             "prefix": new_prefix,
-            "next_resend_time": next_resend_time
+            "next_resend_time": verification_run.last_try_timestamp + wait_time
         }
 
     finally:
@@ -863,6 +874,7 @@ def get_documents_by_category(category_id: str, db: Session = Depends(get_db)):
             "description": doc.description,
             "file_path": doc.file_path,
             "status": doc.status,
+            "file_name": doc.file_path.split('/')[-1],
             "uploaded_by": doc.uploaded_by,
             "category_id": doc.category_id,
             "uploaded_at": doc.uploaded_at.isoformat(),
@@ -902,6 +914,7 @@ def get_pending_files(db: Session = Depends(get_db)):
             "description": doc.description,
             "file_path": doc.file_path,
             "status": doc.status,
+            "file_name": doc.file_path.split('/')[-1],
             "category_id": doc.category_id,
             "uploaded_by": doc.uploaded_by,
             "uploaded_at": doc.uploaded_at.isoformat(),
@@ -947,4 +960,108 @@ def increase_popularity(document_id: str, db: Session = Depends(get_db)):
     db.refresh(document)
 
     return {"message": "Popularity increased", "new_popularity": document.popularity}
+
+
+
+def split_text_into_chunks(text, max_length=3000):
+    """ Mondatokat figyelembe véve darabolja a szöveget max_length karakteres blokkokra. """
+    sentences = re.split(r'(?<=[.!?])\s+', text)  # Mondathatárok figyelembevétele
+    chunks = []
+    current_chunk = ""
+
+    for sentence in sentences:
+        if len(current_chunk) + len(sentence) < max_length:
+            current_chunk += " " + sentence if current_chunk else sentence
+        else:
+            chunks.append(current_chunk)
+            current_chunk = sentence
+
+    if current_chunk:
+        chunks.append(current_chunk)
+    
+    return chunks
+
+def translate_large_text(text, source_lang, target_lang, max_length=3000):
+    """ Nagyobb szövegek darabolva történő fordítása. """
+    print("nagyszöveg")
+    chunks = split_text_into_chunks(text, max_length)
+    translated_chunks = [GoogleTranslator(source=source_lang, target=target_lang).translate(chunk) for chunk in chunks]
+    return " ".join(translated_chunks)
+
+
+def translate_text(text, source_lang, target_lang):
+    return GoogleTranslator(source=source_lang, target=target_lang).translate(text)
+
+def find_closest_word(word, word_list):
+    closest_matches = difflib.get_close_matches(word, word_list, n=1)
+    return closest_matches[0] if closest_matches else word
+
+def generate_quiz(text, lang, max_questions):
+    payload = {"input_text": text, "max_questions": max_questions}
+    qg = main.QGen()
+
+    if lang == 'magyar':
+        original_text = text
+        translated_text = translate_large_text(original_text, 'hu', 'en')
+        payload['input_text'] = translated_text
+    
+    output = qg.predict_mcq(payload)
+    
+    if lang == 'magyar':
+        original_words = set(original_text.split())
+        for question in output['questions']:
+            question['question_statement'] = translate_text(question['question_statement'], 'en', 'hu')
+            question['answer'] = translate_text(question['answer'], 'en', 'hu')
+            question['options'] = [translate_text(option, 'en', 'hu') for option in question['options']]
+            
+            question['answer'] = ' '.join(
+                [find_closest_word(word, original_words) if word not in original_words else word for word in question['answer'].split()]
+            )
+            question['options'] = [
+                ' '.join([find_closest_word(word, original_words) if word not in original_words else word for word in option.split()])
+                for option in question['options']
+            ]
+    
+    return output
+
+from pdfminer.high_level import extract_text
+
+def extract_docx_text(docx_content):
+    """ Kinyeri a szöveget egy DOCX fájlból """
+    with BytesIO(docx_content) as byte_io:
+        doc = Document(byte_io)
+        text = []
+        for para in doc.paragraphs:
+            text.append(para.text)
+    return '\n'.join(text)
+
+@app.get("/generate-quiz/{filename}")
+async def generate_quiz_from_s3(filename: str, lang: str = 'angol', max_questions: int = 5):
+    s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
+    
+
+    file_obj = s3.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
+    file_content = file_obj['Body'].read()  # Fájl tartalmának beolvasása
+    file_extension = filename.split('.')[-1].lower()
+
+    if file_extension == 'pdf':
+        # PDF fájl szövegeinek kinyerése (BytesIO szükséges itt)
+        byte_io = BytesIO(file_content)
+        extracted_text = extract_text(byte_io)  # Itt közvetlenül a BytesIO objektumot adom át
+    elif file_extension == 'docx':
+        # DOCX fájl szövegeinek kinyerése
+        extracted_text = extract_docx_text(file_content)
+    elif file_extension == 'txt':
+        # TXT fájlok szövegének kinyerése
+        extracted_text = file_content.decode('utf-8')  # TXT fájlok esetén egyszerűen dekódolhatjuk
+    else:
+        # Egyéb fájlok feldolgozása
+        extracted_text = textract.process(BytesIO(file_content)).decode("utf-8")
+    
+    # Kvíz generálása
+    quiz = generate_quiz(extracted_text, lang, max_questions)
+    print(quiz)
+    return JSONResponse(content=quiz)
+
+
 

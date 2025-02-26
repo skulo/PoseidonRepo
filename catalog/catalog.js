@@ -21,6 +21,8 @@ document.getElementById('file-input').addEventListener('change', () => {
 
 // Dokumentumok betöltése
 async function loadDocuments(categoryId = null) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); 
     selectedCategoryId = categoryId;
     console.log("Selected categoryy ID:", selectedCategoryId);
     const url = categoryId ? `/files/${categoryId}` : '/files';  // Ha van categoryId, az adott kategóriát töltjük be
@@ -82,11 +84,39 @@ async function loadDocuments(categoryId = null) {
             //downloadButton.onclick = () => window.location.href = doc.download_url;
 
             //docActions.appendChild(downloadButton);
+            const quizButton = document.createElement('button');
+                quizButton.innerText = 'Kvízgenerálás';
+                quizButton.className = 'quiz-button';
+                quizButton.onclick = async () => {
+                    try {
+                        console.log('Kvízgenerálás...');
+                        console.log('Fájl neve:', doc.file_name);
+                        const response = await fetch(`/generate-quiz/${doc.file_name}?lang=magyar&max_questions=5`, {
+                            method: "GET",
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
 
+                        if (!response.ok) {
+                            throw new Error('Hiba a kvízgenerálás során');
+                        }
+                        const quizData = await response.json();
+                        console.log('Generált kvíz:', quizData);
+                        alert('Kvíz generálva! Nézd meg a konzolt.');
+                    } catch (error) {
+                        console.error(error);
+                        alert('Nem sikerült kvízt generálni.');
+                    }
+                };
+                
+                docActions.appendChild(quizButton);
 
             const user_data = await getUserData();
             if (user_data) {
             
+
+                
+                
             const userId = user_data.id;
             const role = user_data.role;
             console.log("User ID:", userId);
