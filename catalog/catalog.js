@@ -91,7 +91,7 @@ async function loadDocuments(categoryId = null) {
                     try {
                         console.log('Kvízgenerálás...');
                         console.log('Fájl neve:', doc.file_name);
-                        const response = await fetch(`/generate-quiz/${doc.file_name}?lang=magyar&max_questions=5`, {
+                        const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=magyar&max_questions=5`, {
                             method: "GET",
                             signal: controller.signal
                         });

@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session, Query
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from baseclass import BaseClass
-from models import VerificationRun, Verification, Proof, EmailProof, VerificationRunDuplicate
+from models import VerificationRun, Verification, Proof, EmailProof, VerificationRunDuplicate, Quiz, Question, Answer
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -1035,33 +1035,69 @@ def extract_docx_text(docx_content):
             text.append(para.text)
     return '\n'.join(text)
 
-@app.get("/generate-quiz/{filename}")
-async def generate_quiz_from_s3(filename: str, lang: str = 'angol', max_questions: int = 5):
+@app.get("/generate-quiz/{document_id_form}-{filename}")
+async def generate_quiz_from_s3(
+    filename: str,
+    document_id_form: str,
+    lang: str = 'angol',
+    max_questions: int = 5,
+    user_id: str = 'default_user',  # Ezt módosítsd, ha van user autentikáció
+    db: Session = Depends(get_db)
+):
     s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
-    
-
     file_obj = s3.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
-    file_content = file_obj['Body'].read()  # Fájl tartalmának beolvasása
+    file_content = file_obj['Body'].read()
     file_extension = filename.split('.')[-1].lower()
 
     if file_extension == 'pdf':
-        # PDF fájl szövegeinek kinyerése (BytesIO szükséges itt)
         byte_io = BytesIO(file_content)
-        extracted_text = extract_text(byte_io)  # Itt közvetlenül a BytesIO objektumot adom át
+        extracted_text = extract_text(byte_io)
     elif file_extension == 'docx':
-        # DOCX fájl szövegeinek kinyerése
         extracted_text = extract_docx_text(file_content)
     elif file_extension == 'txt':
-        # TXT fájlok szövegének kinyerése
-        extracted_text = file_content.decode('utf-8')  # TXT fájlok esetén egyszerűen dekódolhatjuk
+        extracted_text = file_content.decode('utf-8')
     else:
-        # Egyéb fájlok feldolgozása
         extracted_text = textract.process(BytesIO(file_content)).decode("utf-8")
-    
+
     # Kvíz generálása
-    quiz = generate_quiz(extracted_text, lang, max_questions)
-    print(quiz)
-    return JSONResponse(content=quiz)
+    quiz_data = generate_quiz(extracted_text, lang, max_questions)
+
+    # **1. Létrehozzuk a kvízt az adatbázisban**
+    quiz_id = f"quiz_{uuid.uuid4()}"
+    new_quiz = Quiz(
+        id=quiz_id,
+        document_id=document_id_form,  # Ezt igazítsd az adatmodellhez
+        created_by=user_id,
+        created_at=datetime.utcnow()
+    )
+    db.add(new_quiz)
+    db.commit()
+
+        # **2. Hozzáadjuk a kérdéseket**
+    for question in quiz_data["questions"]:
+        question_id = f"question_{uuid.uuid4()}"
+        new_question = Question(
+            id=question_id,
+            quiz_id=quiz_id,
+            question_text=question["question_statement"],
+            correct_answer=question["answer"]
+        )
+        db.add(new_question)
+        db.commit()  # Commitáljuk a kérdést, hogy biztosítsuk, hogy az id már létezik
+
+        # **3. Hozzáadjuk a válaszokat**
+        options = question["options"] + [question["answer"]]  # Helyes válasz is bekerül
+        for option in options:
+            new_answer = Answer(
+                id=f"answer_{uuid.uuid4()}",
+                question_id=question_id,  # Mivel commitáltuk a kérdést, biztosak vagyunk benne, hogy az id létezik
+                answer_text=option,
+                is_correct=(option == question["answer"])
+            )
+            db.add(new_answer)
+
+    db.commit()  # Az összes változtatást véglegesítjük
+    return JSONResponse(content={"message": "Kvíz elmentve!", "quiz_id": quiz_id})
 
 
 
