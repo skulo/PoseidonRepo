@@ -94,6 +94,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/quiz", StaticFiles(directory="quiz"), name="quiz")
 app.mount("/catalog", StaticFiles(directory="catalog"), name="catalog")
 app.mount("/main", StaticFiles(directory="main"), name="main")
 app.mount("/moderation", StaticFiles(directory="moderation"), name="moderation")
@@ -1214,3 +1215,23 @@ def is_verified(
 
 
     return {"is_verified": is_valid, "is_ongoing": is_ongoing}
+
+
+@app.get("/get-quiz/{quiz_id}")
+async def get_quiz(quiz_id: str, db: Session = Depends(get_db)):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Kvíz nem található")
+
+    questions = db.query(Question).filter(Question.quiz_id == quiz_id).all()
+    quiz_data = {"questions": []}
+    for question in questions:
+        answers = db.query(Answer).filter(Answer.question_id == question.id).all()
+        options = [answer.answer_text for answer in answers]
+        correct = next((answer.answer_text for answer in answers if answer.is_correct), None)
+        quiz_data["questions"].append({
+            "question": question.question_text,
+            "options": options,
+            "correct": correct
+        })
+    return quiz_data

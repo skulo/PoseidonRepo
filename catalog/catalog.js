@@ -85,31 +85,35 @@ async function loadDocuments(categoryId = null) {
 
             //docActions.appendChild(downloadButton);
             const quizButton = document.createElement('button');
-                quizButton.innerText = 'Kvízgenerálás';
-                quizButton.className = 'quiz-button';
-                quizButton.onclick = async () => {
-                    try {
-                        console.log('Kvízgenerálás...');
-                        console.log('Fájl neve:', doc.file_name);
-                        const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=magyar&max_questions=5`, {
-                            method: "GET",
-                            signal: controller.signal
-                        });
-                        clearTimeout(timeoutId);
+quizButton.innerText = 'Kvízgenerálás';
+quizButton.className = 'quiz-button';
+quizButton.onclick = async () => {
+    const lang = prompt("Válassz nyelvet: magyar vagy angol", "magyar");
+    const maxQuestions = prompt("Add meg a maximum kérdésszámot", "5");
+    
+    if (!lang || !maxQuestions) {
+        alert("Nyelv és kérdésszám kötelező!");
+        return;
+    }
+    
+    try {
+        console.log('Kvízgenerálás...');
+        const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=${lang}&max_questions=${maxQuestions}`);
+        
+        if (!response.ok) {
+            throw new Error('Hiba a kvízgenerálás során');
+        }
+        
+        const { quiz_id } = await response.json();
+        console.log('Generált kvíz ID:', quiz_id);
+        window.location.href = `/quiz/quiz.html?quiz_id=${quiz_id}`;
+    } catch (error) {
+        console.error(error);
+        alert('Nem sikerült kvízt generálni.');
+    }
+};
+docActions.appendChild(quizButton);
 
-                        if (!response.ok) {
-                            throw new Error('Hiba a kvízgenerálás során');
-                        }
-                        const quizData = await response.json();
-                        console.log('Generált kvíz:', quizData);
-                        alert('Kvíz generálva! Nézd meg a konzolt.');
-                    } catch (error) {
-                        console.error(error);
-                        alert('Nem sikerült kvízt generálni.');
-                    }
-                };
-                
-                docActions.appendChild(quizButton);
 
             const user_data = await getUserData();
             if (user_data) {
