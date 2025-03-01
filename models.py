@@ -59,6 +59,7 @@ class Quiz(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     document_id = Column(String, ForeignKey('documents.id'), nullable=False)
     created_by = Column(String, ForeignKey('users.id'), nullable=False)
+    is_ready = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Question(Base):

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import io
+from fastapi import BackgroundTasks
 import json
 import os
 import re
@@ -1050,9 +1051,10 @@ from docx import Document as DocxDocument
 async def generate_quiz_from_s3(
     filename: str,
     document_id_form: str,
+    background_tasks: BackgroundTasks,
     lang: str = 'angol',
     max_questions: int = 5,
-    user_id: str = 'default_user',  # Ezt módosítsd, ha van user autentikáció
+    user_id: str = 'default_user',
     db: Session = Depends(get_db)
 ):
     s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
@@ -1089,44 +1091,22 @@ async def generate_quiz_from_s3(
         return JSONResponse(content={"message": "Nem támogatott fájlformátum"}, status_code=400)
 
     # Kvíz generálása
-    quiz_data = generate_quiz(extracted_text, lang, max_questions)
 
-    # **1. Létrehozzuk a kvízt az adatbázisban**
+
     quiz_id = f"quiz_{uuid.uuid4()}"
     new_quiz = Quiz(
-        id=quiz_id,
-        document_id=document_id_form,  # Ezt igazítsd az adatmodellhez
-        created_by=user_id,
-        created_at=datetime.utcnow()
-    )
-    db.add(new_quiz)
-    db.commit()
-
-        # **2. Hozzáadjuk a kérdéseket**
-    for question in quiz_data["questions"]:
-        question_id = f"question_{uuid.uuid4()}"
-        new_question = Question(
-            id=question_id,
-            quiz_id=quiz_id,
-            question_text=question["question_statement"],
-            correct_answer=question["answer"]
+            id=quiz_id,
+            document_id=document_id_form,  # Ezt igazítsd az adatmodellhez
+            created_by=user_id,
+            is_ready=False,
+            created_at=datetime.utcnow()
         )
-        db.add(new_question)
-        db.commit()  # Commitáljuk a kérdést, hogy biztosítsuk, hogy az id már létezik
-
-        # **3. Hozzáadjuk a válaszokat**
-        options = question["options"] + [question["answer"]]  # Helyes válasz is bekerül
-        for option in options:
-            new_answer = Answer(
-                id=f"answer_{uuid.uuid4()}",
-                question_id=question_id,  # Mivel commitáltuk a kérdést, biztosak vagyunk benne, hogy az id létezik
-                answer_text=option,
-                is_correct=(option == question["answer"])
-            )
-            db.add(new_answer)
-
-    db.commit()  # Az összes változtatást véglegesítjük
-    return JSONResponse(content={"message": "Kvíz elmentve!", "quiz_id": quiz_id})
+    db.add(new_quiz) 
+    db.commit()
+    db.refresh(new_quiz)
+    background_tasks.add_task(generate_quiz_background, extracted_text, lang, max_questions, document_id_form, user_id, new_quiz.id, db)
+    
+    return JSONResponse(content={"message": "Kvíz generálása folyamatban...", "quiz_id": new_quiz.id})    
 
 
 
@@ -1340,3 +1320,54 @@ async def delete_quiz_result(
     db.delete(quiz_result)
     db.commit()
     return {"message": "Kvíz eredmény törölve!"}
+
+
+
+def generate_quiz_background(extracted_text, lang, max_questions, document_id_form, user_id, quiz_id, db):
+        quiz_data = generate_quiz(extracted_text, lang, max_questions)
+
+        # **1. Létrehozzuk a kvízt az adatbázisban**
+        existing_quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+        if not existing_quiz:
+            print(f"Hiba: Nincs ilyen kvíz ID: {quiz_id}")
+            return  # Ha nincs ilyen kvíz, kilépünk
+
+        # 🔄 Frissítjük a meglévő `Quiz` rekordot
+        existing_quiz.created_by = user_id
+        existing_quiz.created_at = datetime.utcnow()
+        db.commit()
+
+            # **2. Hozzáadjuk a kérdéseket**
+        for question in quiz_data["questions"]:
+            question_id = f"question_{uuid.uuid4()}"
+            new_question = Question(
+                id=question_id,
+                quiz_id=quiz_id,
+                question_text=question["question_statement"],
+                correct_answer=question["answer"]
+            )
+            db.add(new_question)
+            db.commit()  # Commitáljuk a kérdést, hogy biztosítsuk, hogy az id már létezik
+
+            # **3. Hozzáadjuk a válaszokat**
+            options = question["options"] + [question["answer"]]  # Helyes válasz is bekerül
+            for option in options:
+                new_answer = Answer(
+                    id=f"answer_{uuid.uuid4()}",
+                    question_id=question_id,  # Mivel commitáltuk a kérdést, biztosak vagyunk benne, hogy az id létezik
+                    answer_text=option,
+                    is_correct=(option == question["answer"])
+                )
+                db.add(new_answer)
+        existing_quiz.is_ready = True
+        db.commit()  # Az összes változtatást véglegesítjük
+        return JSONResponse(content={"message": "Kvíz elmentve!", "quiz_id": quiz_id})
+
+
+
+@app.get("/check-quiz-status/{quiz_id}")
+async def check_quiz_status(quiz_id: str, db: Session = Depends(get_db)):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if quiz and quiz.is_ready:
+        return {"ready": True}
+    return {"ready": False}

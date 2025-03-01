@@ -85,28 +85,61 @@ async function loadDocuments(categoryId = null) {
 
             //docActions.appendChild(downloadButton);
 
+            const waitForQuizReady = async (quizId) => {
+                const maxRetries = 60;  // Max 5 percet várunk (60 * 5s = 300s)
+                let attempts = 0;
+                let loaderContainer = document.getElementById("loader-container");
+                loaderContainer.style.setProperty('display', 'flex', 'important');
+                
+                while (attempts < maxRetries) {
+                    const response = await fetch(`/check-quiz-status/${quizId}`);
+                    const data = await response.json();
+            
+                    if (data.ready) {
+                        loaderContainer.style.display = "none";
+                        return;  // Kvíz kész van, kilépünk a ciklusból
+                    }
+            
+                    await new Promise(resolve => setTimeout(resolve, 5000));  // Várakozás 5 másodpercet
+                    attempts++;
+                }
+            
+                //throw new Error('Túl hosszú ideig tartott a kvízgenerálás.');
+            };
+
+            
             const startQuizGeneration = async (lang, maxQuestions) => {
                 try {
-                    console.log('Kvízgenerálás...');
-                    console.log('Nyelv:', lang);
-                    console.log('Maximum kérdésszám:', maxQuestions);
+                    console.log('Kvízgenerálás elindítva...');
+
                     const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=${lang}&max_questions=${maxQuestions}`, {
                         method: "GET",
                         signal: controller.signal
                     });
-                    clearTimeout(timeoutId);
             
                     if (!response.ok) {
                         throw new Error('Hiba a kvízgenerálás során');
                     }
+            
                     const quizData = await response.json();
-                    console.log('Generált kvíz:', quizData);
-                    window.location.href = `/quiz/quiz.html?quiz_id=${quizData.quiz_id}`;
+                    const quizId = quizData.quiz_id;
+                    //window.location.href = `/loader/loader.html?quiz_id=${quizId}`;
+
+                    if (quizId) {
+                        console.log(`Kvíz generálása folyamatban, ID: ${quizId}`);
+                        await waitForQuizReady(quizId);  // 🔄 Itt várunk, amíg kész a kvíz
+                        console.log('Kvíz készen áll!');
+                        window.location.href = `/quiz/quiz.html?quiz_id=${quizId}`;
+                    } else {
+                        throw new Error('Érvénytelen válasz a szervertől');
+                    }
+            
                 } catch (error) {
                     console.error(error);
                     alert('Nem sikerült kvízt generálni.');
                 }
             };
+            
             
             const showQuizSettingsModal = () => {
                 const modal = document.createElement('div');
