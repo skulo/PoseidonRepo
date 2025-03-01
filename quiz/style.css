@@ -6,14 +6,6 @@
     display: none;
   }
   
-  .quiz-container .timer {
-    font-weight: bold;
-    text-align: right;
-  }
-  
-  .timer.danger {
-    color: red;
-  }
   
   .quiz-container h2.question {
     font-size: 20px;
@@ -85,6 +77,8 @@
     border: 1px solid #eee;
     display: flex;
     flex-direction: column;
+    background: #3b9016;
+
     gap: 10px;
   }
   

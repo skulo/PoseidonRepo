@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import io
 import json
 import os
 import re
@@ -23,7 +24,7 @@ from sqlalchemy.orm import Session, Query
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from baseclass import BaseClass
-from models import VerificationRun, Verification, Proof, EmailProof, VerificationRunDuplicate, Quiz, Question, Answer
+from models import VerificationRun, Verification, Proof, EmailProof, VerificationRunDuplicate, Quiz, Question, Answer, QuizResult
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -99,8 +100,9 @@ app.mount("/catalog", StaticFiles(directory="catalog"), name="catalog")
 app.mount("/main", StaticFiles(directory="main"), name="main")
 app.mount("/moderation", StaticFiles(directory="moderation"), name="moderation")
 app.mount("/trending", StaticFiles(directory="trending"), name="trending")
+app.mount("/quizzes", StaticFiles(directory="quizzes"), name="quizzes")
 
-handler = Mangum(app)
+handler = Mangum(app) 
 # A token generálása
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
     to_encode = data.copy()
@@ -1038,15 +1040,11 @@ def generate_quiz(text, lang, max_questions):
     return output
 
 from pdfminer.high_level import extract_text
+import pdfplumber
+from pptx import Presentation
+import io
 
-def extract_docx_text(docx_content):
-    """ Kinyeri a szöveget egy DOCX fájlból """
-    with BytesIO(docx_content) as byte_io:
-        doc = Document(byte_io)
-        text = []
-        for para in doc.paragraphs:
-            text.append(para.text)
-    return '\n'.join(text)
+from docx import Document as DocxDocument
 
 @app.get("/generate-quiz/{document_id_form}-{filename}")
 async def generate_quiz_from_s3(
@@ -1061,16 +1059,34 @@ async def generate_quiz_from_s3(
     file_obj = s3.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
     file_content = file_obj['Body'].read()
     file_extension = filename.split('.')[-1].lower()
+    extracted_text = ""
 
-    if file_extension == 'pdf':
-        byte_io = BytesIO(file_content)
-        extracted_text = extract_text(byte_io)
-    elif file_extension == 'docx':
-        extracted_text = extract_docx_text(file_content)
-    elif file_extension == 'txt':
+    if file_extension == 'txt':
+        # A szöveg kinyerése txt fájlból
         extracted_text = file_content.decode('utf-8')
+
+    elif file_extension == 'docx':
+        import io
+        # A szöveg kinyerése docx fájlból
+        doc = DocxDocument(io.BytesIO(file_content))
+        extracted_text = '\n'.join([para.text for para in doc.paragraphs])
+
+    elif file_extension == 'pdf':
+        import io
+
+        # A szöveg kinyerése pdf fájlból
+        with pdfplumber.open(io.BytesIO(file_content)) as pdf:
+            extracted_text = '\n'.join([page.extract_text() for page in pdf.pages])
+
+    elif file_extension == 'ppt' or file_extension == 'pptx':
+        import io
+
+        # A szöveg kinyerése ppt fájlból
+        prs = Presentation(io.BytesIO(file_content))
+        extracted_text = '\n'.join([slide.shapes[0].text for slide in prs.slides if hasattr(slide.shapes[0], "text")])
+
     else:
-        extracted_text = textract.process(BytesIO(file_content)).decode("utf-8")
+        return JSONResponse(content={"message": "Nem támogatott fájlformátum"}, status_code=400)
 
     # Kvíz generálása
     quiz_data = generate_quiz(extracted_text, lang, max_questions)
@@ -1235,3 +1251,92 @@ async def get_quiz(quiz_id: str, db: Session = Depends(get_db)):
             "correct": correct
         })
     return quiz_data
+
+
+@app.post("/save-quiz-result")
+async def save_quiz_result(quiz_id: str, score: int, user_id: str, db: Session = Depends(get_db)):
+    # Ellenőrizd, hogy létezik-e a kvíz
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Kvíz nem található")
+
+    # Eredmény mentése
+    new_result = QuizResult(
+        quiz_id=quiz_id,
+        user_id=user_id,
+        score=score
+    )
+    db.add(new_result)
+    db.commit()
+    db.refresh(new_result)
+    return {"message": "Eredmény sikeresen elmentve!"}
+
+
+
+@app.get("/quiz-category")
+async def get_quiz_category(quiz_id: str, db: Session = Depends(get_db)):
+    # Csatlakozó lekérdezés a kategória nevéhez
+    category_name = (
+        db.query(Category.name)
+        .join(Document, Document.category_id == Category.id)
+        .join(Quiz, Quiz.document_id == Document.id)
+        .filter(Quiz.id == quiz_id)
+        .first()
+    )
+
+    if not category_name:
+        raise HTTPException(status_code=404, detail="Kategória nem található")
+
+    return {"category_name": category_name[0]}
+
+
+@app.get("/quiz-results")
+async def get_quiz_results(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    # Lekérjük a bejelentkezett felhasználóhoz tartozó eredményeket
+    results = db.query(QuizResult).filter(QuizResult.user_id == current_user.id).all()
+    output = []
+    for res in results:
+        # Lekérjük a Quiz rekordot
+        quiz = db.query(Quiz).filter(Quiz.id == res.quiz_id).first()
+        if not quiz:
+            continue
+        # Lekérjük a hozzá tartozó Document-et
+        document = db.query(Document).filter(Document.id == quiz.document_id).first()
+        if not document:
+            continue
+        # Kérdések számának lekérése a Quiz-hez
+        total_questions = db.query(Question).filter(Question.quiz_id == quiz.id).count()
+        # A kategória lekérése a Document alapján
+        category = db.query(Category).filter(Category.id == document.category_id).first()
+        category_name = category.name if category else "Ismeretlen kategória"
+        output.append({
+            "quiz_result_id": res.id,
+            "quiz_id": res.quiz_id,
+            "score": res.score,
+            "total_questions": total_questions,
+            "category": category_name,
+            "document_name": document.title,
+            "completed_at": res.completed_at
+        })
+    return output
+
+
+@app.delete("/delete-quiz-result", status_code=status.HTTP_200_OK)
+async def delete_quiz_result(
+    quiz_result_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    # Csak a bejelentkezett felhasználó eredményét töröljük
+    quiz_result = db.query(QuizResult).filter(
+        QuizResult.id == quiz_result_id,
+        QuizResult.user_id == current_user.id
+    ).first()
+    if not quiz_result:
+        raise HTTPException(status_code=404, detail="Kvíz eredmény nem található")
+    db.delete(quiz_result)
+    db.commit()
+    return {"message": "Kvíz eredmény törölve!"}

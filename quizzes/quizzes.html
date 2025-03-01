@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Saját kvízeredmények</title>
+    <!-- Használhatod ugyanazt a CSS-t, mint a moderation.css vagy készíthetsz újat -->
+    <link rel="stylesheet" href="/moderation/moderation.css" />
+  </head>
+  <body>
+    <header>
+      <nav class="navbar">
+        <div class="navbar-container">
+          <ul class="navbar-links">
+            <li><a href="/catalog/catalog.html">Katalógus</a></li>
+            <li><a href="/moderation/moderation.html">Moderáció</a></li>
+            <li><a href="/trending/trending.html">Főoldal</a></li>
+            <li id="userDropdown">
+              <button class="dropbtn" id="userDropdownBtn">
+                Logged in as <span id="userName">Loading...</span>
+              </button>
+            </li>
+            <li><a href="#" id="logout">Logout</a></li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+
+    <section id="quizzes">
+      <h2>Saját kvízeredményeim</h2>
+      <div id="quizzes-list">
+        <!-- Itt fognak megjelenni a kvíz eredmény kártyák -->
+      </div>
+    </section>
+
+    <script src="quizzes.js"></script>
+  </body>
+</html>

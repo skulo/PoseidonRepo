@@ -1,5 +1,5 @@
 let quizData = []; // Itt tároljuk majd a kvíz adatokat
-
+let MAX_QUESTIONS = 0;
 async function loadQuiz() {
   // Lekérdezzük a kvíz ID-t az URL-ből
   const urlParams = new URLSearchParams(window.location.search);
@@ -12,7 +12,10 @@ async function loadQuiz() {
   // Kvíz adatainak lekérése az API-ról
   const response = await fetch(`/get-quiz/${quizId}`);
   const data = await response.json();
-  quizData = data.questions;  // A kérdések adatai a válaszban
+  quizData = data.questions;  
+  MAX_QUESTIONS = quizData.length;  // Itt állítjuk be dinamikusan a kérdésszámot
+  // A kérdések adatai a válaszban
+  
 
 }
   
@@ -27,8 +30,6 @@ loadQuiz();
   
   let questionNumber = 0;
   let score = 0;
-  const MAX_QUESTIONS = quizData.length;
-  let timerInterval;
   
   const shuffleArray = (array) => {
     return array.slice().sort(() => Math.random() - 0.5);
@@ -62,29 +63,6 @@ loadQuiz();
   };
   
   const createQuestion = () => {
-    clearInterval(timerInterval);
-  
-    let secondsLeft = 9;
-    const timerDisplay = document.querySelector(".quiz-container .timer");
-    timerDisplay.classList.remove("danger");
-  
-    timerDisplay.textContent = `Time Left: 10 seconds`;
-  
-    timerInterval = setInterval(() => {
-      timerDisplay.textContent = `Time Left: ${secondsLeft
-        .toString()
-        .padStart(2, "0")} seconds`;
-      secondsLeft--;
-  
-      if (secondsLeft < 3) {
-        timerDisplay.classList.add("danger");
-      }
-  
-      if (secondsLeft < 0) {
-        clearInterval(timerInterval);
-        displayNextQuestion();
-      }
-    }, 1000);
   
     options.innerHTML = "";
     question.innerHTML = `<span class='question-number'>${
@@ -116,6 +94,33 @@ loadQuiz();
   };
   
   const displayQuizResult = () => {
+
+    async function getUserData() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+    
+        try {
+            // Felhasználói adatok lekérése
+            const response = await fetch('http://127.0.0.1:8000/me', {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+    
+            const userData = await response.json();
+            // Pending dokumentumok lekérése
+            const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+            const pendingCount = await pendingResponse.json();
+    
+            return userData;
+        } catch (error) {
+            console.error("Hiba a felhasználói adatok lekérése közben:", error);
+        }
+    }
+
+
+    const userData = getUserData();
+
+
     quizResult.style.display = "flex";
     quizContainer.style.display = "none";
     quizResult.innerHTML = "";
@@ -151,6 +156,31 @@ loadQuiz();
     retakeBtn.innerHTML = "Retake Quiz";
     retakeBtn.addEventListener("click", retakeQuiz);
     quizResult.appendChild(retakeBtn);
+
+
+    const sendQuizResult = async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const quizId = urlParams.get('quiz_id');
+        const userData = await getUserData();
+
+        const userId = userData.id; 
+      
+        const response = await fetch(`/save-quiz-result?quiz_id=${quizId}&user_id=${userId}&score=${score}`, {
+            method: "POST"
+        });
+      
+        if (response.ok) {
+          console.log("Eredmény sikeresen elmentve!");
+        } else {
+          console.error("Hiba történt az eredmény mentésekor.");
+        }
+      };
+      
+      if (userData){
+        sendQuizResult();
+      }
+
+      
   };
   
   const displayNextQuestion = () => {
@@ -172,3 +202,21 @@ loadQuiz();
   });
 
 
+// URL paraméterekből lekéri a kvíz ID-t
+const urlParams = new URLSearchParams(window.location.search);
+const quizId = urlParams.get('quiz_id');
+
+// Kategória név betöltése
+const loadCategoryName = async () => {
+    const response = await fetch(`/quiz-category?quiz_id=${quizId}`);
+    if (response.ok) {
+        const data = await response.json();
+        document.querySelector("h1").innerText = `${data.category_name} Quiz`;
+        document.querySelector(".start-btn-container h2").innerText = data.category_name;
+    } else {
+        console.error("Hiba történt a kategória betöltésekor.");
+    }
+};
+
+// Betöltés indítása
+loadCategoryName();
