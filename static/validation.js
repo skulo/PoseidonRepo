@@ -110,13 +110,15 @@ async function registerUser() {
   const data = await response.json();
   if (response.ok) {
       alert('Sikeres regisztráció! Add meg a verifikációs kódot.');
-
-      // Verifikációs szekció megjelenítése
-      document.getElementById('verification_section').style.display = 'block';
-
-      // Automatikusan beállítjuk az email-t és entity_id-t a verifikációhoz
       localStorage.setItem('verification_email', email);
       localStorage.setItem('verification_entity_id', data.id);
+      updateVerificationUI()
+
+      // Verifikációs szekció megjelenítése
+      //document.getElementById('verification_section').style.display = 'block';
+
+      // Automatikusan beállítjuk az email-t és entity_id-t a verifikációhoz
+
       localStorage.setItem('randuin', password);
   } else {
       alert(data.detail || 'Hiba történt a regisztráció során!');
@@ -127,7 +129,10 @@ async function verifyCode() {
   const verificationCode = document.getElementById('verification_code').value;
   const email = localStorage.getItem('verification_email');
   const entityId = localStorage.getItem('verification_entity_id');
-  const password = localStorage.getItem('randuin');
+  const password = localStorage.getItem('login_password');
+
+  const emailtoken = document.getElementById('login_email').value;
+  const passwordtoken = document.getElementById('login_password').value;
   if (!email || !entityId) {
       alert('Hiba: nincs érvényes regisztrációs adat!');
       return;
@@ -152,21 +157,10 @@ async function verifyCode() {
     else{
       alert('Sikeres verifikáció! Átirányítás a catalog oldalra.');
     
+      loginUser();
 
-      const response = await fetch('http://127.0.0.1:8000/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ username: email, password })
-  });
 
-  const data = await response.json();
-  if (data.access_token) {
-      localStorage.setItem('token', data.access_token);
-     // alert('Sikeres bejelentkezés!');
-      window.location.href = "/catalog/catalog.html";
-  } else {
-      alert('Hibás átirányítás!');
-  }
+  
 }
   } else {
       alert('Nem ok a response');
@@ -226,6 +220,7 @@ async function resendVerificationCode() {
 
 
 async function loginUser() {
+  console.log('loginUser')
   const email = document.getElementById('login_email').value;
   const password = document.getElementById('login_password').value;
   
@@ -240,9 +235,13 @@ async function loginUser() {
       localStorage.setItem('token', data.access_token);
       alert('Sikeres bejelentkezés OG!');
       window.location.href = "/catalog/catalog.html";
-  } else {
-      alert('Hibás bejelentkezési adatok!');
-  }
+  } if(data.status=="not_verified"){
+    localStorage.setItem('verification_email', email);
+    localStorage.setItem('verification_entity_id', data.id);
+
+    await updateVerificationUI();
+    alert(data.message);
+    }
 }
 
 async function getUserData() {
@@ -260,5 +259,65 @@ async function getUserData() {
   document.getElementById('user_data').innerText = JSON.stringify(data, null, 2);
 }
 
+window.addEventListener('load', async () => {
+  await fetch('http://127.0.0.1:8000/expire_ongoing_verification_runs', { method: 'POST' });
+});
+
+
+
+
+
+async function updateVerificationUI() {
+  const email = localStorage.getItem('verification_email');
+  const entityId = localStorage.getItem('verification_entity_id');
+  if (!email || !entityId) return;
+
+  const response = await fetch('http://127.0.0.1:8000/is_verified?' + new URLSearchParams({
+    entity_id: entityId
+  }));
+  const data = await response.json();
+
+  const verificationSection = document.getElementById('verification_section');
+  const newVerificationButton = document.getElementById('new_verification_button');
+  const resendButton = document.querySelector('#verification_section button[onclick*="resendVerificationCode"]');
+  const codeInput = document.getElementById('verification_code');
+
+  if (data.is_verified) {
+    verificationSection.style.display = 'none';
+    newVerificationButton.style.display = 'none';
+  } else if (data.is_ongoing) {
+    verificationSection.style.display = 'block';
+    newVerificationButton.style.display = 'none';
+    resendButton.style.display = 'inline-block';
+    codeInput.style.display = 'inline-block';
+  } else {
+    verificationSection.style.display = 'none';
+    newVerificationButton.style.display = 'block';
+  }
+}
+
+window.addEventListener('load', updateVerificationUI);
+
+
+
+async function startNewVerification() {
+  const email = localStorage.getItem('verification_email');
+  const entityId = localStorage.getItem('verification_entity_id');
+  if (!email || !entityId) return;
+  console.log(entityId)
+
+  const response = await fetch('http://127.0.0.1:8000/start_verification?' + new URLSearchParams({
+    entity_id: entityId
+}), {
+    method: 'POST'
+});
+
+  if (response.ok) {
+    alert('Új verifikációs folyamat indítva!');
+    await updateVerificationUI();
+  } else {
+    alert('Hiba történt a verifikáció indításakor!');
+  }
+}
 
 

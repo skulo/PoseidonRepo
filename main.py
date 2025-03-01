@@ -154,14 +154,17 @@ def verify_password(plain_password, password_hash):
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = get_user_from_db(form_data.username)
+    print("debug")
+    print(user)
     if user is None or not verify_password(form_data.password, user.password_hash):
+        print("DDDDDDDDDDDDDDDEBUG")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"+form_data.username + form_data.password + user.password_hash,
         )
     print("token generating")
     if not user.verified:
-        return {"status": "not_verified", "message": "Email not verified. Please enter the verification code sent to your email."}
+        return {"id": user.id, "status": "not_verified", "message": "Email not verified. Please enter the verification code sent to your email."}
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -492,6 +495,15 @@ async def download_file(filename: str):
 def get_current_user_info(user: User = Depends(get_current_user)):
     return user
 
+@app.post("/expire_ongoing_verification_runs")
+def expire_ongoing_verification_runs(
+    db: Session = Depends(get_db)
+
+):
+    base = BaseClass()
+    base.expire_ongoing_verification_runs(db)
+
+    return {"status": "OK"}
 
 @app.get("/pendingdocs/{userId}")
 def get_users_pending_docs_count(userId: str, db: Session = Depends(get_db)):
@@ -1101,3 +1113,104 @@ async def generate_quiz_from_s3(
 
 
 
+@app.post("/start_verification")
+def start_verification(
+    entity_id: str, 
+    db: Session = Depends(get_db)
+):
+        base = BaseClass()
+        db_user=db.query(User).filter(User.id == entity_id).first()
+        run_duplicate=base.is_run_duplicate(entity_id=db_user.id, verification_process="EMAIL", session=db)
+
+        if run_duplicate!="":
+            new_duplicate_run = VerificationRunDuplicate(
+                id=f"verification_verificationrunduplicate_{uuid.uuid4()}",
+                serviceProviderID="VB",
+                verificationTypeCode="EMAIL",
+                entityType=db_user.role,
+                entityID=db_user.id,
+                verificationProcessCode="EMAIL",
+                originalVerificationRunID=run_duplicate
+            )
+            base.create_verification_run_duplicate(new_duplicate_run)
+            return {"status": "DUPLICATE_RUN_FOUND"}
+        
+        VERIFICATION_EXPIRE_DAYS=5000
+        CODE_LENGTH=6
+        TRY_EXPIRE_HOURS=24
+        MAX_RRETRY_PROCESS=3
+        MAX_RETRY_PROCESS_WAIT_TIME_MINUTES=3
+        MAX_RETRY_PROCESS_METHOD="EXPONENTIAL"
+        MAX_RETRY=3
+
+        new_run = VerificationRun(
+                id=f"verification_verificationrun_{uuid.uuid4()}",
+                serviceProviderID="VB",
+                verificationProcessCode="EMAIL",
+                entityType=db_user.role,
+                entityID=db_user.id,
+                verificationTypeCode="EMAIL",
+                status="ONGOING",
+                vendor_status="PENDING",
+                fail_reason="",
+                try_count=0,
+                effective_date=datetime.now(),
+                expiration_date=datetime.now() + timedelta(hours=TRY_EXPIRE_HOURS),
+                remaining_tries=MAX_RETRY
+            )
+
+        created_run = base.create_verification_run(new_run, session=db)
+
+        prefix = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+
+        verification_code = ''.join([str(random.randint(0, 9)) for _ in range(CODE_LENGTH)])
+
+        new_proof = EmailProof(
+            id=f"verification_proof_{uuid.uuid4()}",
+            verificationRunID=created_run.id,
+            main_param=db_user.email,
+            verification_code=verification_code,
+            uploadDate=datetime.now(),
+            expirationDate=datetime.now() + timedelta(hours=TRY_EXPIRE_HOURS),
+            entityType=db_user.role,
+            entityID=db_user.id,
+            prefix=prefix,
+            ip_address="",
+            correct_code_submission_time=None,
+            status="PENDING"
+        )
+        created_proof=base.create_proof(new_proof, session=db)
+
+        proof = created_run.proofs[0]
+
+        phoneresult=base.email_duplicate_check(db_user.id, email=db_user.id, session=db)
+        if phoneresult=="":
+            #base.update_proof_status(proof=proof, new_status="PENDING", main_param=normalized_phone, session=session)
+            proof.status="PENDING"
+            proof.main_param=db_user.email
+
+        #send email to address
+        #send_email(db_user.email, verification_code)
+        verification_code = prefix + "-" +verification_code
+        send_email(db_user.email, verification_code)
+        "EMAIL SENT"
+
+
+
+@app.get("/is_verified")
+def is_verified(
+    entity_id: str, 
+    db: Session = Depends(get_db)
+
+):
+    base = BaseClass()
+
+    is_valid = base.is_verified(
+        entity_id, 
+        db
+    )
+
+    is_ongoing = base.get_verification_run_two(entity_id, db)
+
+
+    return {"is_verified": is_valid, "is_ongoing": is_ongoing}

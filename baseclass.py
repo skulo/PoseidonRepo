@@ -391,7 +391,7 @@ class BaseClass():
 
 
 
-    def is_verified(self, service_provider_id: str, entity_type: str, entity_id: int, verification_type_code: str, session: Optional[Session] = None) -> bool:
+    def is_verified(self, entity_id: int, session: Optional[Session] = None) -> bool:
         b_session_was_opened = False
         if session is None:
             session = Session(self.engine)
@@ -400,13 +400,8 @@ class BaseClass():
         
         try:
             verification = session.query(Verification).filter(
-                Verification.serviceProviderID == service_provider_id,
-                Verification.entityType == entity_type,
                 Verification.entityID == entity_id,
-                Verification.verificationTypeCode == verification_type_code,
                 Verification.status == "VALID",
-                Verification.effective_date <= datetime.now(),
-                Verification.expiration_date >= datetime.now()
             ).first()
 
             return verification is not None
@@ -571,9 +566,12 @@ class BaseClass():
 
 
 
-    def expire_ongoing_verification_runs(self):
-        session = Session(self.engine)
-        session.begin()
+    def expire_ongoing_verification_runs(self, session: Optional[Session] = None):
+        b_session_was_opened = False
+        if session is None:
+            session = Session(self.engine)
+            b_session_was_opened = True
+            session.begin()
 
         now = datetime.now()
 
@@ -592,6 +590,11 @@ class BaseClass():
                 proof.status = "EXPIRED"
         
         session.commit()
+
+        if b_session_was_opened:
+            session.close()
+
+        return True
 
 
     def expire_valid_verifications(self):
@@ -670,6 +673,7 @@ class BaseClass():
 
         run = session.query(VerificationRun).options(joinedload(VerificationRun.proofs)).filter(
             VerificationRun.entityID == entity_id,  
+            VerificationRun.status == "ONGOING"
         ).first()
 
 
@@ -683,3 +687,26 @@ class BaseClass():
             session.close()
 
         return run.id
+    
+
+
+    def get_verification_run_two(self, entity_id: int, session: Optional[Session] = None):
+        """
+        Fetches the verification run by ID and other parameters, with proofs pre-loaded.
+        """
+        b_session_was_opened = False
+        if not session:
+            session = Session(self.engine)
+            b_session_was_opened = True
+            session.begin()
+            session.expire_on_commit = False
+
+        run = session.query(VerificationRun).filter(
+            VerificationRun.entityID == entity_id,
+            VerificationRun.status == "ONGOING"
+        ).first()
+
+        if b_session_was_opened:
+            session.close()
+
+        return run is not None
