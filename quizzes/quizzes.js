@@ -37,20 +37,12 @@ function displayQuizResults(results) {
   quizzesList.innerHTML = "";
 
   results.forEach((result) => {
-    // Példa objektum: 
-    // {
-    //   quiz_result_id: "result_123",
-    //   quiz_id: "quiz_456",
-    //   score: 5,
-    //   total_questions: 6,
-    //   category: "Történelem"
-    // }
 
     const card = document.createElement("div");
     card.className = "document-card"; // ugyanaz a stílus mint moderationban
 
     card.innerHTML = `
-      <div class="document-date">${new Date().toLocaleDateString()}</div>
+      <div class="document-date">${new Date(result.completed_at).toLocaleDateString()}</div>
       <div class="documents-category">${result.category}</div>
       <div class="document-title">${result.document_name}</div>
       <div class="document-description">${result.score} / ${result.total_questions}</div>
