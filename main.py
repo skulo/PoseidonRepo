@@ -2,7 +2,9 @@ from datetime import datetime, timedelta, timezone
 import io
 from fastapi import BackgroundTasks
 import json
+from openai import OpenAI
 import os
+from dotenv import load_dotenv
 import re
 from sqlite3 import IntegrityError
 import string
@@ -102,6 +104,7 @@ app.mount("/main", StaticFiles(directory="main"), name="main")
 app.mount("/moderation", StaticFiles(directory="moderation"), name="moderation")
 app.mount("/trending", StaticFiles(directory="trending"), name="trending")
 app.mount("/quizzes", StaticFiles(directory="quizzes"), name="quizzes")
+app.mount("/allquizzes", StaticFiles(directory="allquizzes"), name="allquizzes")
 
 handler = Mangum(app) 
 # A token generálása
@@ -1012,33 +1015,66 @@ def find_closest_word(word, word_list):
     closest_matches = difflib.get_close_matches(word, word_list, n=1)
     return closest_matches[0] if closest_matches else word
 
-def generate_quiz(text, lang, max_questions):
-    payload = {"input_text": text, "max_questions": max_questions}
-    qg = main.QGen()
+load_dotenv() 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    if lang == 'magyar':
-        original_text = text
-        translated_text = translate_large_text(original_text, 'hu', 'en')
-        payload['input_text'] = translated_text
+class QuizRequest(BaseModel):
+    text: str
+    num_questions: int
+    language: str  # "hu" vagy "en"
+
+def count_tokens(text: str) -> int:
+    """Durva becslés tokenek számolására (jobb, ha tiktoken könyvtárat használod)."""
+    return len(text.split()) * 1.3  # Átlagosan 1 szó ~1.3 token
+
+
+def generate_quiz(text, lang, max_questions):
+    MAX_TOKENS = 16384
+
+    if lang not in ["magyar", "angol"]:
+        raise HTTPException(status_code=400, detail="Unsupported language. Use 'magyar' or 'angol'.")
     
-    output = qg.predict_mcq(payload)
+    if count_tokens(text) > MAX_TOKENS:
+        raise HTTPException(
+            status_code=400,
+            detail="A megadott szöveg túl hosszú! Próbálj meg rövidebb szöveget használni."
+        )
     
-    if lang == 'magyar':
-        original_words = set(original_text.split())
-        for question in output['questions']:
-            question['question_statement'] = translate_text(question['question_statement'], 'en', 'hu')
-            question['answer'] = translate_text(question['answer'], 'en', 'hu')
-            question['options'] = [translate_text(option, 'en', 'hu') for option in question['options']]
-            
-            question['answer'] = ' '.join(
-                [find_closest_word(word, original_words) if word not in original_words else word for word in question['answer'].split()]
-            )
-            question['options'] = [
-                ' '.join([find_closest_word(word, original_words) if word not in original_words else word for word in option.split()])
-                for option in question['options']
-            ]
+
     
-    return output
+    # Prompt készítése a választott nyelv alapján
+    if lang == "magyar":
+        prompt = f"""
+        Kérlek, készíts {max_questions} darab feleletválasztós kvízkérdést az alábbi szövegből:
+        {text}
+        
+        Az eredményt a következő JSON formátumban add vissza:
+        {{"questions": [
+            {{"question_statement": "<kérdés>", "options": ["<válasz1>", "<válasz2>", "<válasz3>", "<válasz4>"], "answer": "<helyes_válasz>"}},
+            ...
+        ]}}
+        """
+    else:
+        prompt = f"""
+        Generate {max_questions} multiple-choice quiz questions from the following text:
+        {text}
+        
+        Provide the output in the following JSON format:
+        {{"questions": [
+            {{"question_statement": "<question>", "options": ["<option1>", "<option2>", "<option3>", "<option4>"], "answer": "<correct_option>"}},
+            ...
+        ]}}
+        """
+    
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": prompt}]
+    )
+
+    quiz_data = json.loads(response.choices[0].message.content)
+
+    
+    return quiz_data
 
 from pdfminer.high_level import extract_text
 import pdfplumber
@@ -1104,6 +1140,20 @@ async def generate_quiz_from_s3(
     db.add(new_quiz) 
     db.commit()
     db.refresh(new_quiz)
+
+    if lang not in ["magyar", "angol"]:
+        return JSONResponse(content={"message": "Nem támogatott nyelv"}, status_code=400)
+    
+    MAX_TOKENS = 16384
+
+
+    
+    if count_tokens(extracted_text) > MAX_TOKENS:
+        raise HTTPException(
+            status_code=400,
+            detail="A megadott szöveg túl hosszú! Próbálj meg rövidebb szöveget használni."
+        )
+    
     background_tasks.add_task(generate_quiz_background, extracted_text, lang, max_questions, document_id_form, user_id, new_quiz.id, db)
     
     return JSONResponse(content={"message": "Kvíz generálása folyamatban...", "quiz_id": new_quiz.id})    
@@ -1303,6 +1353,35 @@ async def get_quiz_results(
         })
     return output
 
+@app.get("/quiz-all")
+async def get_all_quizzes(db: Session = Depends(get_db)):
+    # Az összes kvíz lekérése
+    quizzes = db.query(Quiz).all()
+    output = []
+    
+    for quiz in quizzes:
+        # Lekérjük a hozzá tartozó Document-et
+        document = db.query(Document).filter(Document.id == quiz.document_id).first()
+        if not document:
+            continue
+        
+        # Kérdések számának lekérése a Quiz-hez
+        total_questions = db.query(Question).filter(Question.quiz_id == quiz.id).count()
+        
+        # A kategória lekérése a Document alapján
+        category = db.query(Category).filter(Category.id == document.category_id).first()
+        category_name = category.name if category else "Ismeretlen kategória"
+        
+        output.append({
+            "quiz_id": quiz.id,
+            "total_questions": total_questions,
+            "category": category_name,
+            "document_name": document.title,
+            "created_at": quiz.created_at
+        })
+    
+    return output
+
 
 @app.delete("/delete-quiz-result", status_code=status.HTTP_200_OK)
 async def delete_quiz_result(
@@ -1350,7 +1429,7 @@ def generate_quiz_background(extracted_text, lang, max_questions, document_id_fo
             db.commit()  # Commitáljuk a kérdést, hogy biztosítsuk, hogy az id már létezik
 
             # **3. Hozzáadjuk a válaszokat**
-            options = question["options"] + [question["answer"]]  # Helyes válasz is bekerül
+            options = question["options"]  # Helyes válasz is bekerül
             for option in options:
                 new_answer = Answer(
                     id=f"answer_{uuid.uuid4()}",

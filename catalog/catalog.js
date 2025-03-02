@@ -118,7 +118,8 @@ async function loadDocuments(categoryId = null) {
                     });
             
                     if (!response.ok) {
-                        throw new Error('Hiba a kvízgenerálás során');
+                        const errorData = await response.json(); // JSON hibaválasz beolvasása
+                        throw new Error(errorData.detail || "Ismeretlen hiba történt.");
                     }
             
                     const quizData = await response.json();
@@ -135,8 +136,8 @@ async function loadDocuments(categoryId = null) {
                     }
             
                 } catch (error) {
-                    console.error(error);
-                    alert('Nem sikerült kvízt generálni.');
+                    console.error("Hiba:", error.message);
+                    alert(error.message);
                 }
             };
             
