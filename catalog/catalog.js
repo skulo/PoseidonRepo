@@ -111,15 +111,16 @@ async function loadDocuments(categoryId = null) {
             const startQuizGeneration = async (lang, maxQuestions) => {
                 try {
                     console.log('Kvízgenerálás elindítva...');
-
-                    const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=${lang}&max_questions=${maxQuestions}`, {
+                    const user_data = await getUserData();
+                    const userId = user_data.id;
+                    const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=${lang}&max_questions=${maxQuestions}&user_id=${userId}`, {
                         method: "GET",
                         signal: controller.signal
                     });
             
                     if (!response.ok) {
                         const errorData = await response.json(); // JSON hibaválasz beolvasása
-                        throw new Error(errorData.detail || "Ismeretlen hiba történt.");
+                        throw new Error(errorData.message || errorData.detail || "Ismeretlen hiba történt.");
                     }
             
                     const quizData = await response.json();
@@ -281,6 +282,7 @@ async function loadDocuments(categoryId = null) {
                     formData.append('description', description);
                     formData.append('role', role);
                     formData.append('category_id', selectedCategoryId);
+                    formData.append('is_edit', true);
     
                     const response = await fetch('/upload/', {
                         method: 'POST',
@@ -419,6 +421,10 @@ async function getUserData() {
         const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
         const pendingCount = await pendingResponse.json();
 
+        const userTokenResponse = await fetch(`http://127.0.0.1:8000/usertokens/${userData.id}`);
+        const userTokenCount = await userTokenResponse.json();
+
+        document.getElementById('userTokens').innerText = userTokenCount.tokens;
         document.getElementById('pendingDocs').innerText = pendingCount;
         return userData;
     } catch (error) {

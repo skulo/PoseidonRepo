@@ -28,6 +28,7 @@ class User(Base):
     role = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     verified = Column(Boolean, default=False)
+    tokens = Column(Integer, default=0)
 
 
 class Document(Base):
@@ -42,6 +43,7 @@ class Document(Base):
     category_id = Column(String, ForeignKey('categories.id'), nullable=False)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
     popularity = Column(Integer, default=0)
+    is_edit = Column(Boolean, default=False)
 
 class ModerationLog(Base):
     __tablename__ = 'moderation_logs'

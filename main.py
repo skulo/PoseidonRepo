@@ -149,6 +149,12 @@ def get_user_from_db(email: str, db: Session = SessionLocal()) -> Optional[User]
 def verify_get_user_from_db(email: str, db: Session = SessionLocal()) -> Optional[User]:
     user = db.query(User).filter(User.email == email).first()
     user.verified = True
+
+    if email.endswith("@inf.elte.hu"):
+        user.tokens = 6  
+    else:
+        user.tokens = 3  
+
     db.commit()
     db.close()
 
@@ -354,6 +360,7 @@ async def upload_file(
     category_id: str = Form(""),
     role: str = Form(""), 
     uploaded_by: str = Form(""), 
+    is_edit: bool = Form(False), 
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
@@ -401,6 +408,7 @@ async def upload_file(
             uploaded_by=uploaded_by,
             status="pending",  
             category_id=category_id,
+            is_edit=is_edit
         )
         db.add(new_document)
         db.commit()
@@ -515,6 +523,14 @@ def expire_ongoing_verification_runs(
 @app.get("/pendingdocs/{userId}")
 def get_users_pending_docs_count(userId: str, db: Session = Depends(get_db)):
     return db.query(Document).filter(Document.uploaded_by == userId, Document.status == "pending").count()
+
+@app.get("/usertokens/{userId}")
+def get_user_tokens(userId: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == userId).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"tokens": user.tokens}
 
 @app.get("/files", response_model=List[Dict[str, str]])
 async def get_files(db: Session = Depends(get_db)):
@@ -952,6 +968,12 @@ async def approve_file(file_id: str, db: Session = Depends(get_db), current_user
     
     doc.status = 'approved'
 
+    if not doc.is_edit:
+        user = db.query(User).filter(User.id == doc.uploaded_by).first()
+        if user:
+            user.tokens += 4  # +4 token ha nem szerkesztett fájl
+            db.commit()
+            
     log = ModerationLog(
         document_id=file_id,
         moderator_id=current_user.id,
@@ -1109,6 +1131,18 @@ async def generate_quiz_from_s3(
     user_id: str = 'default_user',
     db: Session = Depends(get_db)
 ):
+    user = db.query(User).filter(User.id == user_id).first()
+    if user.tokens <= 0:
+        return JSONResponse(
+            content={"message": "Elfogytak a kvízgeneráláshoz szükséges tokenjeid. Tölts fel fájlokat, hogy tokent szerezz!"},
+            status_code=400
+        )
+    
+    # Token levonása
+    user.tokens -= 1
+    db.commit()
+
+
     s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
     file_obj = s3.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
     file_content = file_obj['Body'].read()
@@ -1148,7 +1182,7 @@ async def generate_quiz_from_s3(
     quiz_id = f"quiz_{uuid.uuid4()}"
     new_quiz = Quiz(
             id=quiz_id,
-            document_id=document_id_form,  # Ezt igazítsd az adatmodellhez
+            document_id=document_id_form,  
             created_by=user_id,
             is_ready=False,
             created_at=datetime.utcnow()

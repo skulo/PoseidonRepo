@@ -181,6 +181,7 @@ async function loadDocuments(categoryId = null) {
                     formData.append('description', description);
                     formData.append('role', role);
                     formData.append('category_id', categoryIdDoc);
+                    formData.append('is_edit', true);
     
                     const response = await fetch('/upload/', {
                         method: 'POST',
@@ -435,6 +436,7 @@ async function loadDocuments(categoryId = null) {
                     formData.append('description', description);
                     formData.append('role', role);
                     formData.append('category_id', categoryIdDoc);
+                    formData.append('is_edit', true);
     
                     const response = await fetch('/upload/', {
                         method: 'POST',
@@ -574,6 +576,10 @@ async function getUserData() {
         const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
         const pendingCount = await pendingResponse.json();
 
+        const userTokenResponse = await fetch(`http://127.0.0.1:8000/usertokens/${userData.id}`);
+        const userTokenCount = await userTokenResponse.json();
+
+        document.getElementById('userTokens').innerText = userTokenCount.tokens;
         document.getElementById('pendingDocs').innerText = pendingCount;
         return userData;
     } catch (error) {
