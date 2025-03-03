@@ -11,30 +11,7 @@
       <nav class="navbar">
         <div class="navbar-container">
           <ul class="navbar-links">
-            <li class="dropdown">
-              <button class="dropbtn">
-                Katalógus
-                <i class="fa fa-caret-down"></i>
-              </button>
-              <div class="dropdown-content">
-                <div class="header">
-                  <h2>Fájlkategóriák</h2>
-                </div>
-                <div class="row" id="category-container">
-                  <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
-                </div>
-              </div>
-            </li>
-
-            <li>
-              <a href="/moderation/moderation.html" id="moderation"
-                >Moderáció</a
-              >
-            </li>
-            <li><a href="/trending/trending.html">Főoldal</a></li>
-            <li><a href="/allquizzes/allquizzes.html">Kvízek</a></li>
-            <li><a href="/quizzes/quizzes.html">Kvízeredményeim</a></li>
-            <li><a href="/static/login.html" id="navbar-login">Login</a></li>
+            <li><a href="#" id="logout">Logout</a></li>
 
             <li class="dropdown" id="userDropdown">
               <button class="dropbtn" id="userDropdownBtn">
@@ -52,7 +29,34 @@
                 </p>
               </div>
             </li>
-            <li><a href="#" id="logout">Logout</a></li>
+
+            <li class="dropdown">
+              <button class="dropbtn">
+                Katalógus
+                <i class="fa fa-caret-down"></i>
+              </button>
+              <div class="dropdown-content">
+                <div class="header">
+                  <h2>Fájlkategóriák</h2>
+                </div>
+                <div class="row" id="category-container">
+                  <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
+                </div>
+              </div>
+            </li>
+            <li><a href="/trending/trending.html">Főoldal</a></li>
+            <li><a href="/allquizzes/allquizzes.html">Kvízek</a></li>
+            <li>
+              <a href="/quizzes/quizzes.html" id="myquizresults"
+                >Kvízeredményeim</a
+              >
+            </li>
+            <li>
+              <a href="/moderation/moderation.html" id="moderation"
+                >Moderáció</a
+              >
+            </li>
+            <li><a href="/static/login.html" id="navbar-login">Login</a></li>
           </ul>
         </div>
       </nav>

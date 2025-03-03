@@ -98,6 +98,117 @@ async function loadDocuments(categoryId = null) {
             const userId = user_data.id;
             const role = user_data.role;
             console.log("User ID:", userId);
+
+
+            const waitForQuizReady = async (quizId) => {
+                const maxRetries = 60;  // Max 5 percet várunk (60 * 5s = 300s)
+                let attempts = 0;
+                let loaderContainer = document.getElementById("loader-container");
+                loaderContainer.style.setProperty('display', 'flex', 'important');
+                
+                while (attempts < maxRetries) {
+                    const response = await fetch(`/check-quiz-status/${quizId}`);
+                    const data = await response.json();
+            
+                    if (data.ready) {
+                        loaderContainer.style.display = "none";
+                        return;  // Kvíz kész van, kilépünk a ciklusból
+                    }
+            
+                    await new Promise(resolve => setTimeout(resolve, 5000));  // Várakozás 5 másodpercet
+                    attempts++;
+                }
+            
+                //throw new Error('Túl hosszú ideig tartott a kvízgenerálás.');
+            };
+
+            
+            const startQuizGeneration = async (lang, maxQuestions) => {
+                try {
+                    console.log('Kvízgenerálás elindítva...');
+                    const user_data = await getUserData();
+                    const userId = user_data.id;
+                    const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=${lang}&max_questions=${maxQuestions}&user_id=${userId}`, {
+                        method: "GET",
+                        signal: controller.signal
+                    });
+            
+                    if (!response.ok) {
+                        const errorData = await response.json(); // JSON hibaválasz beolvasása
+                        throw new Error(errorData.message || errorData.detail || "Ismeretlen hiba történt.");
+                    }
+            
+                    const quizData = await response.json();
+                    const quizId = quizData.quiz_id;
+                    //window.location.href = `/loader/loader.html?quiz_id=${quizId}`;
+
+                    if (quizId) {
+                        console.log(`Kvíz generálása folyamatban, ID: ${quizId}`);
+                        await waitForQuizReady(quizId);  // 🔄 Itt várunk, amíg kész a kvíz
+                        console.log('Kvíz készen áll!');
+                        window.location.href = `/quiz/quiz.html?quiz_id=${quizId}`;
+                    } else {
+                        throw new Error('Érvénytelen válasz a szervertől');
+                    }
+            
+                } catch (error) {
+                    console.error("Hiba:", error.message);
+                    alert(error.message);
+                }
+            };
+            
+            
+            const showQuizSettingsModal = () => {
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+            
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h2>Kvíz beállítások</h2>
+                        <label for="lang-select">Válassz nyelvet:</label>
+                        <select id="lang-select">
+                            <option value="magyar">Magyar</option>
+                            <option value="angol">Angol</option>
+                        </select>
+                        <br>
+                        <label for="max-questions">Maximum kérdésszám:</label>
+                        <input type="number" id="max-questions" value="5" min="1" max="20">
+                        <br>
+                        <button id="start-quiz-btn">Indítás</button>
+                        <button id="cancel-btn">Mégse</button>
+                    </div>
+                `;
+            
+                document.body.appendChild(modal);
+            
+                // Eseménykezelők
+                document.getElementById('start-quiz-btn').onclick = () => {
+                    const lang = document.getElementById('lang-select').value;
+                    const maxQuestions = document.getElementById('max-questions').value;
+                    document.body.removeChild(modal);
+                    startQuizGeneration(lang, maxQuestions);
+                };
+            
+                document.getElementById('cancel-btn').onclick = () => {
+                    document.body.removeChild(modal);
+                };
+            };
+
+            // Kvízgomb eseménykezelője
+
+            const allowedExtensions = ['docx', 'pdf', 'ppt', 'txt'];
+            const fileExtension = doc.file_name.split('.').pop().toLowerCase();
+            if (allowedExtensions.includes(fileExtension)) {
+            const quizButton = document.createElement('button');
+            quizButton.innerText = 'Kvíz';
+            quizButton.className = 'quiz-button';
+            quizButton.onclick = showQuizSettingsModal;
+            docActions.appendChild(quizButton);
+
+            }
+
+
+
             if (role === 'admin' || role === 'moderator' || doc.uploaded_by === userId) {
                 const deleteButton = document.createElement('button');
                 deleteButton.innerText = 'Delete';
@@ -353,6 +464,116 @@ async function loadDocuments(categoryId = null) {
             const userId = user_data.id;
             const role = user_data.role;
             console.log("User ID:", userId);
+
+
+            const waitForQuizReady = async (quizId) => {
+                const maxRetries = 60;  // Max 5 percet várunk (60 * 5s = 300s)
+                let attempts = 0;
+                let loaderContainer = document.getElementById("loader-container");
+                loaderContainer.style.setProperty('display', 'flex', 'important');
+                
+                while (attempts < maxRetries) {
+                    const response = await fetch(`/check-quiz-status/${quizId}`);
+                    const data = await response.json();
+            
+                    if (data.ready) {
+                        loaderContainer.style.display = "none";
+                        return;  // Kvíz kész van, kilépünk a ciklusból
+                    }
+            
+                    await new Promise(resolve => setTimeout(resolve, 5000));  // Várakozás 5 másodpercet
+                    attempts++;
+                }
+            
+                //throw new Error('Túl hosszú ideig tartott a kvízgenerálás.');
+            };
+
+            
+            const startQuizGeneration = async (lang, maxQuestions) => {
+                try {
+                    console.log('Kvízgenerálás elindítva...');
+                    const user_data = await getUserData();
+                    const userId = user_data.id;
+                    const response = await fetch(`/generate-quiz/${doc.id}-${doc.file_name}?lang=${lang}&max_questions=${maxQuestions}&user_id=${userId}`, {
+                        method: "GET",
+                        signal: controller.signal
+                    });
+            
+                    if (!response.ok) {
+                        const errorData = await response.json(); // JSON hibaválasz beolvasása
+                        throw new Error(errorData.message || errorData.detail || "Ismeretlen hiba történt.");
+                    }
+            
+                    const quizData = await response.json();
+                    const quizId = quizData.quiz_id;
+                    //window.location.href = `/loader/loader.html?quiz_id=${quizId}`;
+
+                    if (quizId) {
+                        console.log(`Kvíz generálása folyamatban, ID: ${quizId}`);
+                        await waitForQuizReady(quizId);  // 🔄 Itt várunk, amíg kész a kvíz
+                        console.log('Kvíz készen áll!');
+                        window.location.href = `/quiz/quiz.html?quiz_id=${quizId}`;
+                    } else {
+                        throw new Error('Érvénytelen válasz a szervertől');
+                    }
+            
+                } catch (error) {
+                    console.error("Hiba:", error.message);
+                    alert(error.message);
+                }
+            };
+            
+            
+            const showQuizSettingsModal = () => {
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+            
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h2>Kvíz beállítások</h2>
+                        <label for="lang-select">Válassz nyelvet:</label>
+                        <select id="lang-select">
+                            <option value="magyar">Magyar</option>
+                            <option value="angol">Angol</option>
+                        </select>
+                        <br>
+                        <label for="max-questions">Maximum kérdésszám:</label>
+                        <input type="number" id="max-questions" value="5" min="1" max="20">
+                        <br>
+                        <button id="start-quiz-btn">Indítás</button>
+                        <button id="cancel-btn">Mégse</button>
+                    </div>
+                `;
+            
+                document.body.appendChild(modal);
+            
+                // Eseménykezelők
+                document.getElementById('start-quiz-btn').onclick = () => {
+                    const lang = document.getElementById('lang-select').value;
+                    const maxQuestions = document.getElementById('max-questions').value;
+                    document.body.removeChild(modal);
+                    startQuizGeneration(lang, maxQuestions);
+                };
+            
+                document.getElementById('cancel-btn').onclick = () => {
+                    document.body.removeChild(modal);
+                };
+            };
+
+            // Kvízgomb eseménykezelője
+
+            const allowedExtensions = ['docx', 'pdf', 'ppt', 'txt'];
+            const fileExtension = doc.file_name.split('.').pop().toLowerCase();
+            if (allowedExtensions.includes(fileExtension)) {
+            const quizButton = document.createElement('button');
+            quizButton.innerText = 'Kvíz';
+            quizButton.className = 'quiz-button';
+            quizButton.onclick = showQuizSettingsModal;
+            docActions.appendChild(quizButton);
+
+            }
+
+
             if (role === 'admin' || role === 'moderator' || doc.uploaded_by === userId) {
                 const deleteButton = document.createElement('button');
                 deleteButton.innerText = 'Delete';
@@ -603,12 +824,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const moderationButton = document.getElementById('moderation');
     const loginButton = document.getElementById('navbar-login');
     const userDropdown = document.getElementById('userDropdown');
+    const myquizResults = document.getElementById('myquizresults');
 
     // Ha van token, akkor megjelenítjük a feltöltési szekciót
     if (token) {
 
         userDropdown.style.display = 'block';
         loginButton.style.display = 'none';
+        myquizResults.style.display = 'block';
         //uploadSection.style.display = 'block';
         logoutButton.style.display = 'block';
         const user_data = await getUserData();
@@ -626,7 +849,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Ha nincs token, elrejtjük a szekciót
         userDropdown.style.display = 'none';
         loginButton.style.display = 'block';
+        myquizResults.style.display = 'none';
         //uploadSection.style.display = 'none';
+        moderationButton.style.display = 'none';
+
         logoutButton.style.display = 'none';
     }
 });

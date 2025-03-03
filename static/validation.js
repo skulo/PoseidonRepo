@@ -321,3 +321,78 @@ async function startNewVerification() {
 }
 
 
+async function getUserData() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  try {
+      // Felhasználói adatok lekérése
+      const response = await fetch('http://127.0.0.1:8000/me', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + token }
+      });
+
+      const userData = await response.json();
+      document.getElementById('userName').innerText = userData.name;
+      document.getElementById('userEmail').innerText = userData.email;
+      document.getElementById('userRole').innerText = userData.role;
+
+      // Pending dokumentumok lekérése
+      const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+      const pendingCount = await pendingResponse.json();
+
+      const userTokenResponse = await fetch(`http://127.0.0.1:8000/usertokens/${userData.id}`);
+      const userTokenCount = await userTokenResponse.json();
+
+      document.getElementById('userTokens').innerText = userTokenCount.tokens;
+      document.getElementById('pendingDocs').innerText = pendingCount;
+      return userData;
+  } catch (error) {
+      console.error("Hiba a felhasználói adatok lekérése közben:", error);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const token = localStorage.getItem('token');
+  const uploadSection = document.getElementById('upload-section');
+  const logoutButton = document.getElementById('logout');
+  const moderationButton = document.getElementById('moderation');
+  const loginButton = document.getElementById('navbar-login');
+  const userDropdown = document.getElementById('userDropdown');
+  const myquizResults = document.getElementById('myquizresults');
+
+  // Ha van token, akkor megjelenítjük a feltöltési szekciót
+  if (token) {
+
+      userDropdown.style.display = 'block';
+      loginButton.style.display = 'none';
+      logoutButton.style.display = 'block';
+      myquizResults.style.display = 'block';
+      const user_data = await getUserData();
+  
+      const userId = user_data.id;
+      const role = user_data.role;
+      if (role === 'admin' || role === 'moderator') {
+          moderationButton.style.display = 'block';
+      }
+      if(role === 'user') {
+          moderationButton.style.display = 'none';
+      }
+
+  } else {
+      // Ha nincs token, elrejtjük a szekciót
+      userDropdown.style.display = 'none';
+      loginButton.style.display = 'block';
+      logoutButton.style.display = 'none';
+      moderationButton.style.display = 'none';
+      myquizResults.style.display = 'none';
+  }
+});
+
+
+document.getElementById('logout').addEventListener('click', () => {
+  event.preventDefault();
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  window.location.reload();
+});

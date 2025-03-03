@@ -85,6 +85,17 @@ async function loadDocuments(categoryId = null) {
 
             //docActions.appendChild(downloadButton);
 
+            const user_data = await getUserData();
+            if (user_data) {
+            
+
+                
+                
+            const userId = user_data.id;
+            const role = user_data.role;
+            console.log("User ID:", userId);
+                
+
             const waitForQuizReady = async (quizId) => {
                 const maxRetries = 60;  // Max 5 percet várunk (60 * 5s = 300s)
                 let attempts = 0;
@@ -185,22 +196,16 @@ async function loadDocuments(categoryId = null) {
             const fileExtension = doc.file_name.split('.').pop().toLowerCase();
             if (allowedExtensions.includes(fileExtension)) {
             const quizButton = document.createElement('button');
-            quizButton.innerText = 'Kvízgenerálás';
+            quizButton.innerText = 'Kvíz';
             quizButton.className = 'quiz-button';
             quizButton.onclick = showQuizSettingsModal;
             docActions.appendChild(quizButton);
 
             }
-            const user_data = await getUserData();
-            if (user_data) {
-            
 
-                
-                
-            const userId = user_data.id;
-            const role = user_data.role;
-            console.log("User ID:", userId);
             if (role === 'admin' || role === 'moderator' || doc.uploaded_by === userId) {
+
+
                 const deleteButton = document.createElement('button');
                 deleteButton.innerText = 'Delete';
                 deleteButton.className = 'delete-button';
@@ -505,6 +510,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const moderationButton = document.getElementById('moderation');
     const loginButton = document.getElementById('navbar-login');
     const userDropdown = document.getElementById('userDropdown');
+    const myquizResults = document.getElementById('myquizresults');
 
     // Ha van token, akkor megjelenítjük a feltöltési szekciót
     if (token) {
@@ -513,6 +519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginButton.style.display = 'none';
         uploadSection.style.display = 'block';
         logoutButton.style.display = 'block';
+        myquizResults.style.display = 'block';
         const user_data = await getUserData();
     
         const userId = user_data.id;
@@ -529,6 +536,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         userDropdown.style.display = 'none';
         loginButton.style.display = 'block';
         uploadSection.style.display = 'none';
+        moderationButton.style.display = 'none';
+        myquizResults.style.display = 'none';
+
         logoutButton.style.display = 'none';
     }
 });

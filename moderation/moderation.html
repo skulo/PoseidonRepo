@@ -11,6 +11,25 @@
       <nav class="navbar">
         <div class="navbar-container">
           <ul class="navbar-links">
+            <li><a href="#" id="logout">Logout</a></li>
+
+            <li class="dropdown" id="userDropdown">
+              <button class="dropbtn" id="userDropdownBtn">
+                Logged in as <span id="userName">Loading...</span>
+              </button>
+              <div class="dropdown-content" id="userDropdownContent">
+                <p class="header"></p>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>Role:</strong> <span id="userRole"></span></p>
+                <p>
+                  <strong>Pending Docs:</strong> <span id="pendingDocs"></span>
+                </p>
+                <p>
+                  <strong>Quiz tokens</strong> <span id="userTokens"></span>
+                </p>
+              </div>
+            </li>
+
             <li class="dropdown">
               <button class="dropbtn">
                 Katalógus
@@ -25,33 +44,19 @@
                 </div>
               </div>
             </li>
-
+            <li><a href="/trending/trending.html">Főoldal</a></li>
+            <li><a href="/allquizzes/allquizzes.html">Kvízek</a></li>
+            <li>
+              <a href="/quizzes/quizzes.html" id="myquizresults"
+                >Kvízeredményeim</a
+              >
+            </li>
             <li>
               <a href="/moderation/moderation.html" id="moderation"
                 >Moderáció</a
               >
             </li>
-            <li><a href="/trending/trending.html">Főoldal</a></li>
-            <li><a href="/allquizzes/allquizzes.html">Kvízek</a></li>
-            <li><a href="/quizzes/quizzes.html">Kvízeredmények</a></li>
-
-            <li class="dropdown" id="userDropdown">
-              <button class="dropbtn" id="userDropdownBtn">
-                Logged in as <span id="userName">Loading...</span>
-              </button>
-              <div class="dropdown-content" id="userDropdownContent">
-                <p class="header"></p>
-                <p><strong>Email:</strong> <span id="userEmail"></span></p>
-                <p><strong>Role:</strong> <span id="userRole"></span></p>
-                <p>
-                  <strong>Pending Docs:</strong> <span id="pendingDocs"></span>
-                </p>
-                <p>
-                  <strong>Quiz tokens:</strong> <span id="userTokens"></span>
-                </p>
-              </div>
-            </li>
-            <li><a href="#" id="logout">Logout</a></li>
+            <li><a href="/static/login.html" id="navbar-login">Login</a></li>
           </ul>
         </div>
       </nav>

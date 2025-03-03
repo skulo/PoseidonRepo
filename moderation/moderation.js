@@ -319,6 +319,10 @@ async function getUserData() {
         const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
         const pendingCount = await pendingResponse.json();
 
+        const userTokenResponse = await fetch(`http://127.0.0.1:8000/usertokens/${userData.id}`);
+        const userTokenCount = await userTokenResponse.json();
+
+        document.getElementById('userTokens').innerText = userTokenCount.tokens;
         document.getElementById('pendingDocs').innerText = pendingCount;
         return userData;
     } catch (error) {
@@ -397,12 +401,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const uploadSection = document.getElementById('upload-section');
     const logoutButton = document.getElementById('logout');
     const moderationButton = document.getElementById('moderation');
-
+    const loginButton = document.getElementById('navbar-login');
+    const userDropdown = document.getElementById('userDropdown');
 
     // Ha van token, akkor megjelenítjük a feltöltési szekciót
     if (token) {
 
-        
+        userDropdown.style.display = 'block';
+        loginButton.style.display = 'none';
+        uploadSection.style.display = 'block';
         logoutButton.style.display = 'block';
         const user_data = await getUserData();
     
@@ -412,23 +419,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             moderationButton.style.display = 'block';
         }
         if(role === 'user') {
-
             moderationButton.style.display = 'none';
-
-            alert("Nincs jogosultságod a moderációs oldal megtekintésére.");
-            window.location.href = "/catalog/catalog.html";
         }
 
     } else {
         // Ha nincs token, elrejtjük a szekciót
+        userDropdown.style.display = 'none';
+        loginButton.style.display = 'block';
+        uploadSection.style.display = 'none';
         logoutButton.style.display = 'none';
-
-        alert("Nincs jogosultságod a moderációs oldal megtekintésére.");
-        window.location.href = "/catalog/catalog.html";
-
     }
 });
-
 
 
 
@@ -651,3 +652,12 @@ async function loadDocuments(categoryId = null) {
         }
     });
 }
+
+
+
+document.getElementById('logout').addEventListener('click', () => {
+    event.preventDefault();
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    window.location.reload();
+  });

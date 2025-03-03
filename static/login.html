@@ -5,12 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
     <link rel="stylesheet" href="style.css" />
+
     <script type="text/javascript" src="validation.js" defer></script>
   </head>
   <body>
-    <div id="nav-links">
-      <a href="/catalog/catalog.html">Katalógus</a>
-    </div>
+    <header>
+      <nav class="navbar">
+        <div class="navbar-container">
+          <ul class="navbar-links">
+            <li><a href="#" id="logout">Logout</a></li>
+
+            <li class="dropdown" id="userDropdown">
+              <button class="dropbtn" id="userDropdownBtn">
+                Logged in as <span id="userName">Loading...</span>
+              </button>
+              <div class="dropdown-content" id="userDropdownContent">
+                <p class="header"></p>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>Role:</strong> <span id="userRole"></span></p>
+                <p>
+                  <strong>Pending Docs:</strong> <span id="pendingDocs"></span>
+                </p>
+                <p>
+                  <strong>Quiz tokens</strong> <span id="userTokens"></span>
+                </p>
+              </div>
+            </li>
+
+            <li class="dropdown">
+              <button class="dropbtn">
+                Katalógus
+                <i class="fa fa-caret-down"></i>
+              </button>
+              <div class="dropdown-content">
+                <div class="header">
+                  <h2>Fájlkategóriák</h2>
+                </div>
+                <div class="row" id="category-container">
+                  <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
+                </div>
+              </div>
+            </li>
+            <li><a href="/trending/trending.html">Főoldal</a></li>
+            <li><a href="/allquizzes/allquizzes.html">Kvízek</a></li>
+            <li>
+              <a href="/quizzes/quizzes.html" id="myquizresults"
+                >Kvízeredményeim</a
+              >
+            </li>
+            <li>
+              <a href="/moderation/moderation.html" id="moderation"
+                >Moderáció</a
+              >
+            </li>
+            <li><a href="/static/login.html" id="navbar-login">Login</a></li>
+          </ul>
+        </div>
+      </nav>
+    </header>
 
     <div class="wrapper">
       <h1>Login</h1>
@@ -79,5 +131,89 @@
       <button onclick="getUserData()">Felhasználói adatok lekérése</button>
       <p id="user_data"></p>
     </div>
+
+    <script>
+      window.onload = async function () {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          if (!token) {
+            document.getElementById("auth-link").style.display = "block";
+            return;
+          }
+        }
+
+        const response = await fetch("http://127.0.0.1:8000/me", {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
+        });
+      };
+
+      // Dinamikus kategória betöltés
+      async function loadCategories() {
+        const response = await fetch("http://127.0.0.1:8000/categories");
+        const categories = await response.json();
+
+        const categoryContainer = document.getElementById("category-container");
+        categoryContainer.innerHTML = "";
+        categories.forEach((category) => {
+          const categoryColumn = document.createElement("div");
+          categoryColumn.classList.add("column");
+
+          const categoryTitle = document.createElement("h3");
+          categoryTitle.textContent = category.name;
+          categoryColumn.appendChild(categoryTitle);
+
+          category.children.forEach((subcategory) => {
+            const subcategoryLink = document.createElement("a");
+            subcategoryLink.href = "#";
+            subcategoryLink.textContent = subcategory.name;
+
+            // Eseménykezelő hozzáadása, hogy betöltsük az adott kategóriához tartozó fájlokat
+            subcategoryLink.onclick = async (e) => {
+              const dropdownContent =
+                document.querySelector(".dropdown-content");
+              dropdownContent.style.display =
+                dropdownContent.style.display === "none" ||
+                dropdownContent.style.display === ""
+                  ? "block"
+                  : "none";
+              e.preventDefault();
+              window.location.href = `/catalog/catalog.html?selectedCategoryId=${subcategory.id}`; // Az alábbi kódban ezt a category_id-t használjuk
+            };
+
+            categoryColumn.appendChild(subcategoryLink);
+          });
+
+          categoryContainer.appendChild(categoryColumn);
+        });
+      }
+
+      window.onload = loadCategories; // Kategóriák betöltése oldal betöltésekor
+
+      // Dropdown gombra hover eseményfigyelő hozzáadása
+      document.querySelector(".dropbtn").addEventListener("mouseenter", () => {
+        const dropdownContent = document.querySelector(".dropdown-content");
+        dropdownContent.style.display = "block"; // Hoverkor megjelenítjük
+      });
+
+      document
+        .querySelector(".dropdown-content")
+        .addEventListener("mouseenter", () => {
+          const dropdownContent = document.querySelector(".dropdown-content");
+          dropdownContent.style.display = "block"; // Hoverkor megjelenítjük
+        });
+      document
+        .querySelector(".dropdown-content")
+        .addEventListener("mouseleave", () => {
+          const dropdownContent = document.querySelector(".dropdown-content");
+          dropdownContent.style.display = "none"; // Hoverkor megjelenítjük
+        });
+
+      // Dropdown gombra hoverről való eltávolítás (mouseleave)
+      document.querySelector(".dropbtn").addEventListener("mouseleave", () => {
+        const dropdownContent = document.querySelector(".dropdown-content");
+        dropdownContent.style.display = "none"; // Hover elhagyásakor eltüntetjük
+      });
+    </script>
   </body>
 </html>

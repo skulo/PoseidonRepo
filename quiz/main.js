@@ -220,3 +220,15 @@ const loadCategoryName = async () => {
 
 // Betöltés indítása
 loadCategoryName();
+document.addEventListener("DOMContentLoaded", () => {
+  const quitBtns = document.querySelectorAll(".quit-btn"); // Minden quit gombot kiválasztunk
+
+  quitBtns.forEach((quitBtn) => {
+    quitBtn.addEventListener("click", (e) => {
+      const confirmQuit = confirm("Are you sure you want to quit? All progress will be lost.");
+      if (confirmQuit) {
+        window.history.back(); // Visszairányít az előző oldalra
+      }
+    });
+  });
+});
