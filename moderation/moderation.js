@@ -187,8 +187,9 @@ async function approveFile(fileId) {
 
     const receiver = dataUser.usremail;
     const fileTitle = dataUser.title;
+    const username = dataUser.usrname;
 
-    const emailResponse = await fetch(`http://127.0.0.1:8000/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&decision=approved`, {
+    const emailResponse = await fetch(`http://127.0.0.1:8000/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&username=${username}&decision=approved&fileId=${fileId}`, {
         method: 'GET'
     });
 
@@ -250,9 +251,9 @@ async function rejectFile(fileId, reason) {
     const receiver = dataUser.usremail;
     const fileTitle = dataUser.title;
     const delete_url = dataUser.delete_url;
+    const username = dataUser.usrname;
 
-
-    const emailResponse = await fetch(`http://127.0.0.1:8000/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&decision=rejected&rejection_reason=${reason}`, {
+    const emailResponse = await fetch(`http://127.0.0.1:8000/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&username=${username}&decision=rejected&fileId=${fileId}&rejection_reason=${reason}`, {
         method: 'GET'
     });
 

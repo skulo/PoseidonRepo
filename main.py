@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from email.mime.image import MIMEImage
 import io
 from fastapi import BackgroundTasks
 import json
@@ -305,8 +306,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
         #send email to address
         #send_email(db_user.email, verification_code)
-        verification_code = prefix + "-" +verification_code
-        send_email(db_user.email, verification_code)
+        verification_code = verification_code
+        send_email(db_user.email, verification_code, db_user.name)
         "EMAIL SENT"
     except IntegrityError as e:
         raise HTTPException(status_code=400, detail="Ez az email cím már regisztrálvaA van!")
@@ -557,10 +558,187 @@ async def get_files(db: Session = Depends(get_db)):
 
 
 
-def send_email(recipient_email: str, verification_code: str):
+def send_email(recipient_email: str, verification_code: str, name: str):
+    sender_email = "poseidongg.noreply@gmail.com"
+    sender_password = "opst qfmv gwzb lhxa"
+
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+
+    message = MIMEMultipart()
+    message["From"] = sender_email
+    message["To"] = recipient_email
+    message["Subject"] = "Verifikációs kód"
+
+    # Kép csatolása
+    with open("logo.jpg", "rb") as img:
+        img_data = img.read()
+        image = MIMEImage(img_data)
+        image.add_header("Content-ID", "<logo>")
+        message.attach(image)
+
+
+    # HTML template módosítva
+    html_body = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Verify your email address</title>
+        <style type="text/css" rel="stylesheet" media="all">
+            * {{
+                font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+                box-sizing: border-box;
+            }}
+            body {{
+                width: 100% !important;
+                height: 100%;
+                margin: 0;
+                background-color: #000000;
+                color: #ffbb00;
+            }}
+            a {{
+                color: #ffbb00;
+            }}
+            .email-wrapper {{
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background-color: #000000;
+            }}
+            .email-content {{
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }}
+            .email-masthead {{
+                padding: 25px 0;
+                text-align: center;
+            }}
+            .email-masthead_logo {{
+                max-width: 200px;
+                border: 0;
+            }}
+            .email-body {{
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                border-top: 1px solid #ffbb00;
+                border-bottom: 1px solid #ffbb00;
+                background-color: #000000;
+            }}
+            .email-body_inner {{
+                width: 570px;
+                margin: 0 auto;
+                padding: 0;
+            }}
+            .email-footer {{
+                width: 570px;
+                margin: 0 auto;
+                padding: 0;
+                text-align: center;
+            }}
+            .email-footer p {{
+                color: #ffbb00;
+            }}
+            .content-cell {{
+                padding: 35px;
+            }}
+            h1 {{
+                margin-top: 0;
+                color: #ffbb00;
+                font-size: 19px;
+                font-weight: bold;
+                text-align: left;
+            }}
+            p {{
+                margin-top: 0;
+                color: #ffbb00;
+                font-size: 16px;
+                line-height: 1.5em;
+                text-align: left;
+            }}
+            .code-box {{
+                background-color: #1c1c1c;
+                color: #ffbb00;
+                padding: 10px;
+                border-radius: 5px;
+                text-align: center;
+                font-size: 24px;
+                font-weight: bold;
+                letter-spacing: 2px;
+            }}
+        </style>
+    </head>
+    <body>
+        <table class="email-wrapper" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="center">
+                    <table class="email-content" width="100%" cellpadding="0" cellspacing="0">
+                        <!-- Logo -->
+                        <tr>
+                            <td class="email-masthead">
+                                <img src="cid:logo" alt="Poseidon Logo" class="email-masthead_logo" />
+                            </td>
+                        </tr>
+                        <!-- Email Body -->
+                        <tr>
+                            <td class="email-body" width="100%">
+                                <table class="email-body_inner" align="center" width="570" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td class="content-cell">
+                                            <h1>Verify your email address</h1>
+                                            <p>Dear {name}!</p>
+                                            <p>Thanks for signing up! Use the code below to verify your email address:</p>
+                                            <div class="code-box">{verification_code}</div>
+                                            <p>If you didn't sign up, you can safely ignore this email.</p>
+                                            <p>Thanks,<br>The Poseidon Team</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <table class="email-footer" align="center" width="570" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td class="content-cell">
+                                            <p class="sub center">
+                                                Poseidon<br>
+                                                All rights reserved.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    message.attach(MIMEText(html_body, "html"))
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, message.as_string())
+        print(f"Email sikeresen elküldve {recipient_email} címre.")
+    except Exception as e:
+        print(f"Az email küldésének hibája: {str(e)}")
+
+
+@app.get("/email/decision")
+def send_email_decision(recipient_email: str, title: str, decision: str, sender: str, username: str, fileId: str, rejection_reason: str = None, db: Session = Depends(get_db)):
     sender_email = "poseidongg.noreply@gmail.com"  # A Te email címed
     sender_password = "opst qfmv gwzb lhxa"  # Az email jelszavad
 
+    fileinfo=db.query(Document).filter(Document.id == fileId).first()
     # SMTP beállítások
     smtp_server = "smtp.gmail.com"
     smtp_port = 587  # Vagy 465 a SSL-hez
@@ -569,46 +747,442 @@ def send_email(recipient_email: str, verification_code: str):
     message = MIMEMultipart()
     message["From"] = sender_email
     message["To"] = recipient_email
-    message["Subject"] = "Verifikációs kód"
-    
-    body = f"A Te verifikációs kódod: {verification_code}"
-    message.attach(MIMEText(body, "plain"))
 
-    # SMTP kapcsolat létrehozása és az email elküldése
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()  # TLS titkosítás engedélyezése
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, recipient_email, message.as_string())
-        print(f"Email sikeresen elküldve {recipient_email} címre.")
-    except Exception as e:
-        print(f"Az email küldésének hibája: {str(e)}")
+    # Kép csatolása
+    with open("logo.jpg", "rb") as img:
+        img_data = img.read()
+        image = MIMEImage(img_data)
+        image.add_header("Content-ID", "<logo>")
+        message.attach(image)
 
-@app.get("/email/decision")
-def send_email_decision(recipient_email: str, title: str, decision: str, sender: str, rejection_reason: str = None):
-    sender_email = "poseidongg.noreply@gmail.com"  # A Te email címed
-    sender_password = "opst qfmv gwzb lhxa"  # Az email jelszavad
-
-    # SMTP beállítások
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587  # Vagy 465 a SSL-hez
-
-    # Email üzenet készítése
-    message = MIMEMultipart()
-    message["From"] = sender_email
     if decision == "approved":
-        message["To"] = recipient_email
         message["Subject"] = "Feltöltött Fájl Jóváhagyva"
-        
-        body = f"A Te fájlod ({title}) jóváhagyásra került, általa: {sender}"
-        message.attach(MIMEText(body, "plain"))
-    if decision == "rejected":
-        message["To"] = recipient_email
+        if fileinfo.is_edit:
+            html_body = f"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+                <title>Verify your email address</title>
+                <style type="text/css" rel="stylesheet" media="all">
+                    * {{
+                        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+                        box-sizing: border-box;
+                    }}
+                    body {{
+                        width: 100% !important;
+                        height: 100%;
+                        margin: 0;
+                        background-color: #000000;
+                        color: #ffbb00;
+                    }}
+                    a {{
+                        color: #ffbb00;
+                    }}
+                    .email-wrapper {{
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #000000;
+                    }}
+                    .email-content {{
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                    }}
+                    .email-masthead {{
+                        padding: 25px 0;
+                        text-align: center;
+                    }}
+                    .email-masthead_logo {{
+                        max-width: 200px;
+                        border: 0;
+                    }}
+                    .email-body {{
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                        border-top: 1px solid #ffbb00;
+                        border-bottom: 1px solid #ffbb00;
+                        background-color: #000000;
+                    }}
+                    .email-body_inner {{
+                        width: 570px;
+                        margin: 0 auto;
+                        padding: 0;
+                    }}
+                    .email-footer {{
+                        width: 570px;
+                        margin: 0 auto;
+                        padding: 0;
+                        text-align: center;
+                    }}
+                    .email-footer p {{
+                        color: #ffbb00;
+                    }}
+                    .content-cell {{
+                        padding: 35px;
+                    }}
+                    h1 {{
+                        margin-top: 0;
+                        color: #ffbb00;
+                        font-size: 19px;
+                        font-weight: bold;
+                        text-align: left;
+                    }}
+                    p {{
+                        margin-top: 0;
+                        color: #ffbb00;
+                        font-size: 16px;
+                        line-height: 1.5em;
+                        text-align: left;
+                    }}
+                    .code-box {{
+                        background-color: #1c1c1c;
+                        color: #ffbb00;
+                        padding: 10px;
+                        border-radius: 5px;
+                        text-align: center;
+                        font-size: 24px;
+                        font-weight: bold;
+                        letter-spacing: 2px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <table class="email-wrapper" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td align="center">
+                            <table class="email-content" width="100%" cellpadding="0" cellspacing="0">
+                                <!-- Logo -->
+                                <tr>
+                                    <td class="email-masthead">
+                                        <img src="cid:logo" alt="Poseidon Logo" class="email-masthead_logo" />
+                                    </td>
+                                </tr>
+                                <!-- Email Body -->
+                                <tr>
+                                    <td class="email-body" width="100%">
+                                        <table class="email-body_inner" align="center" width="570" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td class="content-cell">
+                                                    <h1>Dear {username}!</h1>
+                                                    <p>Your edited file "{title}" has been approved by {sender}.</p>
+                                                    <p>Thanks,<br>The Poseidon Team</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table class="email-footer" align="center" width="570" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td class="content-cell">
+                                                    <p class="sub center">
+                                                        Poseidon<br>
+                                                        All rights reserved.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """
+        else:    
+            html_body = f"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+                <title>Verify your email address</title>
+                <style type="text/css" rel="stylesheet" media="all">
+                    * {{
+                        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+                        box-sizing: border-box;
+                    }}
+                    body {{
+                        width: 100% !important;
+                        height: 100%;
+                        margin: 0;
+                        background-color: #000000;
+                        color: #ffbb00;
+                    }}
+                    a {{
+                        color: #ffbb00;
+                    }}
+                    .email-wrapper {{
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #000000;
+                    }}
+                    .email-content {{
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                    }}
+                    .email-masthead {{
+                        padding: 25px 0;
+                        text-align: center;
+                    }}
+                    .email-masthead_logo {{
+                        max-width: 200px;
+                        border: 0;
+                    }}
+                    .email-body {{
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                        border-top: 1px solid #ffbb00;
+                        border-bottom: 1px solid #ffbb00;
+                        background-color: #000000;
+                    }}
+                    .email-body_inner {{
+                        width: 570px;
+                        margin: 0 auto;
+                        padding: 0;
+                    }}
+                    .email-footer {{
+                        width: 570px;
+                        margin: 0 auto;
+                        padding: 0;
+                        text-align: center;
+                    }}
+                    .email-footer p {{
+                        color: #ffbb00;
+                    }}
+                    .content-cell {{
+                        padding: 35px;
+                    }}
+                    h1 {{
+                        margin-top: 0;
+                        color: #ffbb00;
+                        font-size: 19px;
+                        font-weight: bold;
+                        text-align: left;
+                    }}
+                    p {{
+                        margin-top: 0;
+                        color: #ffbb00;
+                        font-size: 16px;
+                        line-height: 1.5em;
+                        text-align: left;
+                    }}
+                    .code-box {{
+                        background-color: #1c1c1c;
+                        color: #ffbb00;
+                        padding: 10px;
+                        border-radius: 5px;
+                        text-align: center;
+                        font-size: 24px;
+                        font-weight: bold;
+                        letter-spacing: 2px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <table class="email-wrapper" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td align="center">
+                            <table class="email-content" width="100%" cellpadding="0" cellspacing="0">
+                                <!-- Logo -->
+                                <tr>
+                                    <td class="email-masthead">
+                                        <img src="cid:logo" alt="Poseidon Logo" class="email-masthead_logo" />
+                                    </td>
+                                </tr>
+                                <!-- Email Body -->
+                                <tr>
+                                    <td class="email-body" width="100%">
+                                        <table class="email-body_inner" align="center" width="570" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td class="content-cell">
+                                                    <h1>Dear {username}!</h1>
+                                                    <p>Your uploaded file "{title}" has been approved by {sender}.</p>
+                                                    <div class="code-box">+4 Quiz Tokens</div>
+                                                    <p>You can now use these tokens for quiz generations.</p>
+                                                    <p>Thanks,<br>The Poseidon Team</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table class="email-footer" align="center" width="570" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td class="content-cell">
+                                                    <p class="sub center">
+                                                        Poseidon<br>
+                                                        All rights reserved.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """
+    elif decision == "rejected":
         message["Subject"] = "Feltöltött Fájl Elutasítva"
-        
-        body = f"A Te fájlod ({title}) elutasításra került, általa: {sender}. Az elutasítás oka: {rejection_reason}"
-        message.attach(MIMEText(body, "plain"))
-    
+        html_body = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+            <title>Verify your email address</title>
+            <style type="text/css" rel="stylesheet" media="all">
+                * {{
+                    font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+                    box-sizing: border-box;
+                }}
+                body {{
+                    width: 100% !important;
+                    height: 100%;
+                    margin: 0;
+                    background-color: #000000;
+                    color: #ffbb00;
+                }}
+                a {{
+                    color: #ffbb00;
+                }}
+                .email-wrapper {{
+                    width: 100%;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #000000;
+                }}
+                .email-content {{
+                    width: 100%;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .email-masthead {{
+                    padding: 25px 0;
+                    text-align: center;
+                }}
+                .email-masthead_logo {{
+                    max-width: 200px;
+                    border: 0;
+                }}
+                .email-body {{
+                    width: 100%;
+                    margin: 0;
+                    padding: 0;
+                    border-top: 1px solid #ffbb00;
+                    border-bottom: 1px solid #ffbb00;
+                    background-color: #000000;
+                }}
+                .email-body_inner {{
+                    width: 570px;
+                    margin: 0 auto;
+                    padding: 0;
+                }}
+                .email-footer {{
+                    width: 570px;
+                    margin: 0 auto;
+                    padding: 0;
+                    text-align: center;
+                }}
+                .email-footer p {{
+                    color: #ffbb00;
+                }}
+                .content-cell {{
+                    padding: 35px;
+                }}
+                h1 {{
+                    margin-top: 0;
+                    color: #ffbb00;
+                    font-size: 19px;
+                    font-weight: bold;
+                    text-align: left;
+                }}
+                p {{
+                    margin-top: 0;
+                    color: #ffbb00;
+                    font-size: 16px;
+                    line-height: 1.5em;
+                    text-align: left;
+                }}
+                .code-box {{
+                    background-color: #1c1c1c;
+                    color: #ffbb00;
+                    padding: 10px;
+                    border-radius: 5px;
+                    text-align: center;
+                    font-size: 24px;
+                    font-weight: bold;
+                    letter-spacing: 2px;
+                }}
+            </style>
+        </head>
+        <body>
+            <table class="email-wrapper" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td align="center">
+                        <table class="email-content" width="100%" cellpadding="0" cellspacing="0">
+                            <!-- Logo -->
+                            <tr>
+                                <td class="email-masthead">
+                                    <img src="cid:logo" alt="Poseidon Logo" class="email-masthead_logo" />
+                                </td>
+                            </tr>
+                            <!-- Email Body -->
+                            <tr>
+                                <td class="email-body" width="100%">
+                                    <table class="email-body_inner" align="center" width="570" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="content-cell">
+                                                <h1>Dear {username}!</h1>
+                                                <p>Your uploaded file "{title}" has been rejected by {sender}.</p>
+                                                <p>Reason: {rejection_reason} </p>
+                                                <p>Try uploading another file.</p>
+                                                <p>Thanks,<br>The Poseidon Team</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <table class="email-footer" align="center" width="570" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="content-cell">
+                                                <p class="sub center">
+                                                    Poseidon<br>
+                                                    All rights reserved.
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+    else:
+        return {"status": "ERROR", "message": "Invalid decision type"}
+
+    message.attach(MIMEText(html_body, "html"))
 
     # SMTP kapcsolat létrehozása és az email elküldése
     try:
@@ -621,7 +1195,6 @@ def send_email_decision(recipient_email: str, title: str, decision: str, sender:
         print(f"Az email küldésének hibája: {str(e)}")
 
     return {"status": "OK"}
-
 
 
 
@@ -840,8 +1413,9 @@ def resend_code(
 
                 #send email to address
         #send_email(db_user.email, verification_code)
+        db_user=session.query(User).filter(User.id == entity_id).first()
 
-        send_email(proof.main_param, new_verification_code)
+        send_email(proof.main_param, new_verification_code, db_user.name)
 
         session.commit()
 
@@ -935,6 +1509,7 @@ def get_documents_information(fileId: str, db: Session = Depends(get_db)):
             "title": doc.title,
             "delete_url": f"/delete/{doc.file_path.split('/')[-1]}",
             "usremail": usr.email,
+            "usrname": usr.name,
             "status": doc.status,
         }
 
@@ -1286,10 +1861,14 @@ def start_verification(
             proof.status="PENDING"
             proof.main_param=db_user.email
 
+
+
+
+
         #send email to address
         #send_email(db_user.email, verification_code)
         verification_code = prefix + "-" +verification_code
-        send_email(db_user.email, verification_code)
+        send_email(db_user.email, verification_code, db_user.name)
         "EMAIL SENT"
 
 
