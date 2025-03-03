@@ -55,9 +55,19 @@
     </header>
 
     <section id="documents">
-      <h2>Moderációs oldal</h2>
-      <div id="documents-list"></div>
+      <div class="documents-container">
+        <div class="documents-column">
+          <h2 class="documents-category-title">Waiting for approval</h2>
+          <div id="documents-list"></div>
+        </div>
+
+        <div class="documents-column">
+          <h2 class="documents-category-title">Moderation Log</h2>
+          <div id="recent-list"></div>
+        </div>
+      </div>
     </section>
+
     <p id="user_data" style="display: none"></p>
 
     <script src="moderation.js"></script>

@@ -80,10 +80,7 @@ async function loadDocuments(categoryId = null) {
             
 
 
-            // Document description
-            const docDescription = document.createElement('span');
-            docDescription.className = 'document-description';
-            docDescription.innerText = doc.description;
+
             
             const docActions = document.createElement('div');
             docActions.className = 'document-actions';
@@ -279,7 +276,6 @@ async function loadDocuments(categoryId = null) {
             docContainer.appendChild(docDate);
             docContainer.appendChild(docCategory);
             docContainer.appendChild(docTitle);
-            docContainer.appendChild(docDescription);
             docContainer.appendChild(docActions);
 
             docCard.appendChild(docContainer);
@@ -339,10 +335,7 @@ async function loadDocuments(categoryId = null) {
 
 
             // Document description
-            const docDescription = document.createElement('span');
-            docDescription.className = 'document-description';
-            docDescription.innerText = doc.description;
-            
+
             const docActions = document.createElement('div');
             docActions.className = 'document-actions';
 
@@ -538,7 +531,6 @@ async function loadDocuments(categoryId = null) {
             docContainer.appendChild(docDate);
             docContainer.appendChild(docCategory);
             docContainer.appendChild(docTitle);
-            docContainer.appendChild(docDescription);
             docContainer.appendChild(docActions);
 
             docCard.appendChild(docContainer);

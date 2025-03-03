@@ -159,37 +159,45 @@ body {
   text-transform: uppercase;
 }
 
-/* Shop gomb */
-.shop-button {
-  background-color: #faca2a;
-  color: black;
-  padding: 10px 20px;
+/* Két oszlopos elrendezés a dokumentumoknak */
+#documents .documents-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 40px; /* Távolság az oszlopok között */
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto; /* Középre igazítás */
+  align-items: stretch; /* A kártyák egységes magasságot kapjanak */
+}
+
+#documents .documents-column {
+  flex: 1; /* Egyenlő szélesség az oszlopoknak */
+  max-width: 700px; /* Maximum szélesség az oszlopoknak */
+}
+
+#documents .documents-category-title {
+  color: #faca2a;
   text-transform: uppercase;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  margin-top: 20px;
+  text-align: center; /* Középre igazítás a címeknek */
+  margin-bottom: 10px;
 }
 
-.shop-button:hover {
-  background-color: white;
-}
-
-
+/* Dokumentum kártyák stílusa */
 .document-card {
   display: flex;
-  align-items: center;
+  flex-direction: column; /* A tartalom egymás alá rendezzük */
   justify-content: space-between;
   background-color: #000;
   padding: 15px 20px;
   margin: 30px auto;
-  min-height: 70px;
   border-radius: 16px;
   border: 1px solid #222;
+  
   color: #fff;
-  width: 70%; /* Not full width */
   transition: background-color 0.3s, color 0.3s;
   cursor: pointer;
+  gap: 10px; /* Gombok és dátumok közti távolság */
+  height: 100%; /* A kártyák magasságának egységesítése */
 }
 
 .document-card:hover {
@@ -201,11 +209,12 @@ body {
   color: #000;
 }
 
-/* Ensure horizontal layout */
+/* Ha nem fér el egy sorban, törjön új sorba */
 .document-card div {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 55px;
+  gap: 15px;
   flex: 1;
 }
 
@@ -219,14 +228,10 @@ body {
   color: #ffbb00;
 }
 
-.document-description {
-  flex: 2;
-}
-
 .document-actions {
   display: flex;
   gap: 10px;
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex: 0 0 auto; /* Ne vegyen fel extra helyet */
 }
 

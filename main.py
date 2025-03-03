@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session, Query
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from baseclass import BaseClass
-from models import VerificationRun, Verification, Proof, EmailProof, VerificationRunDuplicate, Quiz, Question, Answer, QuizResult
+from models import VerificationRun, Verification, Proof, EmailProof, VerificationRunDuplicate, Quiz, Question, Answer, QuizResult, ModerationLog
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -945,24 +945,40 @@ def get_pending_files(db: Session = Depends(get_db)):
 
 
 @app.put("/moderations/approve/{file_id}")
-async def approve_file(file_id: str, db: Session = Depends(get_db)):
+async def approve_file(file_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     doc = db.query(Document).filter(Document.id == file_id, Document.status == 'pending').first()
     if not doc:
         raise HTTPException(status_code=404, detail="File not found or already processed")
     
     doc.status = 'approved'
+
+    log = ModerationLog(
+        document_id=file_id,
+        moderator_id=current_user.id,
+        decision='approved',
+        reason=None  # Jóváhagyás esetén nincs ok
+    )
+    db.add(log)
     db.commit()
     return {"message": "File approved successfully"}
 
 
 
 @app.put("/moderations/reject/{file_id}")
-async def reject_file(file_id: str, reason: str, db: Session = Depends(get_db)):
+async def reject_file(file_id: str, reason: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     doc = db.query(Document).filter(Document.id == file_id, Document.status == 'pending').first()
     if not doc:
         raise HTTPException(status_code=404, detail="File not found or already processed")
     
     doc.status = 'rejected'
+
+    log = ModerationLog(
+        document_id=file_id,
+        moderator_id=current_user.id,
+        decision='rejected',
+        reason=reason  # Elutasítás oka
+    )
+    db.add(log)
     #file.rejection_reason = reason
     db.commit()
     return {"message": "File rejected successfully"}
@@ -1450,3 +1466,48 @@ async def check_quiz_status(quiz_id: str, db: Session = Depends(get_db)):
     if quiz and quiz.is_ready:
         return {"ready": True}
     return {"ready": False}
+
+
+class ModerationLogResponse(BaseModel):
+    id: str
+    document_id: str
+    document_title: str  # Hozzáadjuk a dokumentum címét
+    moderator_id: str
+    email: str  # Hozzáadjuk a moderátor e-mail címét
+    decision: str
+    reason: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+@app.get("/moderation-logs", response_model=List[ModerationLogResponse])
+def get_recent_moderation_logs(db: Session = Depends(get_db)):
+    # Kérjük le az 5 legutóbbi moderációs logot, csatolva a dokumentumot és a moderátort
+    recent_logs = (
+        db.query(ModerationLog, Document.title, User.email)
+        .join(Document, ModerationLog.document_id == Document.id)  # Csatlakozás a Document táblához
+        .join(User, Document.uploaded_by == User.id)  # Csatlakozás a User táblához
+        .order_by(ModerationLog.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    # Az eredmény átalakítása a válasz modellhez
+    result = []
+    for log, doc_title, user_email in recent_logs:
+        result.append(
+            ModerationLogResponse(
+                id=log.id,
+                document_id=log.document_id,
+                document_title=doc_title,
+                moderator_id=log.moderator_id,
+                email=user_email,
+                decision=log.decision,
+                reason=log.reason,
+                created_at=log.created_at,
+            )
+        )
+
+    return result

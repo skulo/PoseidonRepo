@@ -31,6 +31,13 @@ async function loadPendingFiles() {
     const documentsList = document.getElementById('documents-list');
     documentsList.innerHTML = "";
 
+    const url2 = `/moderation-logs` 
+    const response2 = await fetch(url2);
+    const documents2 = await response2.json();
+    const recentList = document.getElementById('recent-list');
+    recentList.innerHTML = ''; 
+
+
     files.forEach(file => {
         // Formázott dátum
         const uploadDate = new Date(file.uploaded_at);
@@ -89,6 +96,45 @@ async function loadPendingFiles() {
         });
 
         documentsList.appendChild(fileElement);
+    });
+
+    documents2.forEach(async doc => {
+            const docCard = document.createElement('div');
+            docCard.className = 'document-card';
+            
+
+            const docContainer = document.createElement('div');
+
+            // Upload date
+            const docDate = document.createElement('span');
+
+            const decisionDate = new Date(doc.created_at);
+            const formattedDate = `${decisionDate.getMonth() + 1}/${decisionDate.getDate()}/${decisionDate.getFullYear()}`;
+
+            docDate.className = 'document-date';
+            docDate.innerText = formattedDate;
+
+            // Document title
+            const docTitle = document.createElement('span');
+            docTitle.className = 'document-title';
+            docTitle.innerText = doc.decision;
+
+            const docName = document.createElement('span');
+            docName.className = 'document-name';
+            docName.innerText = doc.document_title;
+
+            const docUploader = document.createElement('span');
+            docUploader.className = 'document-uploader';
+            docUploader.innerText = doc.email;
+
+            docContainer.appendChild(docUploader);
+            docContainer.appendChild(docName);
+            docContainer.appendChild(docDate);
+            docContainer.appendChild(docTitle);
+
+            docCard.appendChild(docContainer);
+            recentList.appendChild(docCard);
+        
     });
 }
 
