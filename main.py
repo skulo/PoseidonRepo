@@ -19,10 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import random
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, StreamingResponse
-import nltk
-import spacy
 from sqlalchemy import UUID
-import urllib
 from models import SessionLocal, User, Document, Category
 from sqlalchemy.orm import Session, Query
 from passlib.context import CryptContext
@@ -41,11 +38,9 @@ from fastapi.responses import JSONResponse
 import boto3
 import textract
 from io import BytesIO
-from Questgen import main
 from deep_translator import GoogleTranslator
 import difflib
-import nltk
-from nltk.corpus import wordnet
+
 from random import shuffle
 
 
@@ -178,7 +173,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     print("token generating")
     if not user.verified:
-        return {"id": user.id, "status": "not_verified", "message": "Email not verified. Please enter the verification code sent to your email."}
+        return {"id": user.id, "status": "not_verified", "message": "Még nem verifikáltad magad!"}
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -1257,7 +1252,7 @@ def confirm_verification(
             session.commit()  
             session.close()
 
-            return {"status": "ERROR", "error_id": "BAD_CODE"}
+            return {"status": "ERROR", "error_id": "A megadott kód helytelen!"}
         
         proof.correct_code_submission_time=datetime.now()
         base.update_verification_status(run, new_status="FINISHED", session=session)
@@ -1390,8 +1385,17 @@ def resend_code(
 
             last_next_resend_time = verification_run.last_try_timestamp + wait_time_last
 
+            
             if current_timestamp < last_next_resend_time:
-                return {"error": f"NEXT_RESEND_AVAILABLE_AT {last_next_resend_time}"}
+                # Átalakítjuk datetime objektummá
+                if isinstance(last_next_resend_time, datetime):
+                    formatted_time = last_next_resend_time.strftime("%H:%M:%S")
+                else:
+                    # Ha nem datetime, akkor konvertáljuk át stringgé
+                    datetime_obj = datetime.fromisoformat(last_next_resend_time)
+                    formatted_time = datetime_obj.strftime("%H:%M:%S")
+
+                return {"error": f"Legközelebb ekkor kérhetsz új kódot: {formatted_time}"}
         
         verification_run.try_count += 1
         
@@ -1867,7 +1871,7 @@ def start_verification(
 
         #send email to address
         #send_email(db_user.email, verification_code)
-        verification_code = prefix + "-" +verification_code
+        verification_code = verification_code
         send_email(db_user.email, verification_code, db_user.name)
         "EMAIL SENT"
 

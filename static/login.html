@@ -64,6 +64,11 @@
       </nav>
     </header>
 
+    <div id="loader-container" class="preloader" style="display: none">
+      <div class="preloader__logo">
+        <div class="preloader__circle"></div>
+      </div>
+    </div>
     <div class="wrapper">
       <h1>Login</h1>
       <p id="error-message"></p>
@@ -102,13 +107,20 @@
         <button type="submit">Login</button>
 
         <div id="verification_section" style="display: none">
-          <h2>Verifikációs Kód</h2>
+          <h2 id="verification-message">Sikeres regisztráció!</h2>
+          <h2 id="verification-message-2">
+            Add meg az e-mailre küldött kódot!
+          </h2>
+
           <input
             type="text"
             id="verification_code"
             placeholder="Írd be a kódot"
           />
-          <button onclick="event.preventDefault(); verifyCode()">
+          <button
+            id="verification_code_submit"
+            onclick="event.preventDefault(); verifyCode()"
+          >
             Verifikálás
           </button>
           <br />
