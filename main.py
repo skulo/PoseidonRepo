@@ -1936,7 +1936,7 @@ async def save_quiz_result(quiz_id: str, score: int, user_id: str, db: Session =
 async def get_quiz_category(quiz_id: str, db: Session = Depends(get_db)):
     # Csatlakozó lekérdezés a kategória nevéhez
     category_name = (
-        db.query(Category.name)
+        db.query(Category.name, Document.title)
         .join(Document, Document.category_id == Category.id)
         .join(Quiz, Quiz.document_id == Document.id)
         .filter(Quiz.id == quiz_id)
@@ -1946,7 +1946,7 @@ async def get_quiz_category(quiz_id: str, db: Session = Depends(get_db)):
     if not category_name:
         raise HTTPException(status_code=404, detail="Kategória nem található")
 
-    return {"category_name": category_name[0]}
+    return {"category_name": category_name[0], "document_title": category_name[1]}
 
 
 @app.get("/quiz-results")

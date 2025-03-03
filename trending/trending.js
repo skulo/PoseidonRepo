@@ -17,6 +17,9 @@ document.getElementById('logout').addEventListener('click', () => {
 // Dokumentumok betöltése
 async function loadDocuments(categoryId = null) {
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); 
+
     if (categoryId) {
         window.location.href = `/catalog/catalog.html?selectedCategoryId=${categoryId}`;
 

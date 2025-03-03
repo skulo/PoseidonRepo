@@ -157,6 +157,17 @@ loadQuiz();
     retakeBtn.addEventListener("click", retakeQuiz);
     quizResult.appendChild(retakeBtn);
 
+    const quittBtn = document.createElement("button");
+    quittBtn.classList.add("quit-btn");
+    quittBtn.innerHTML = "Quit";
+    quittBtn.addEventListener("click", (e) => {
+    
+      window.history.back(); 
+  
+    });
+
+    quizResult.appendChild(quittBtn);
+
 
     const sendQuizResult = async () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -211,8 +222,8 @@ const loadCategoryName = async () => {
     const response = await fetch(`/quiz-category?quiz_id=${quizId}`);
     if (response.ok) {
         const data = await response.json();
-        document.querySelector("h1").innerText = `${data.category_name} Quiz`;
-        document.querySelector(".start-btn-container h2").innerText = data.category_name;
+        document.querySelector("h1").innerText = `${data.category_name}:  "${data.document_title}" Kvíz`;
+        document.querySelector(".start-btn-container h2").innerText = `${data.category_name}:  "${data.document_title}" Kvíz`;
     } else {
         console.error("Hiba történt a kategória betöltésekor.");
     }
