@@ -59,35 +59,39 @@ class Quiz(Base):
     __tablename__ = 'quizzes'
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    document_id = Column(String, ForeignKey('documents.id'), nullable=False)
+    document_id = Column(String, ForeignKey('documents.id', ondelete='CASCADE'), nullable=False)  # <-- Itt adtuk hozzá az ondelete='CASCADE' részt
     created_by = Column(String, ForeignKey('users.id'), nullable=False)
     is_ready = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class Question(Base):
     __tablename__ = 'questions'
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    quiz_id = Column(String, ForeignKey('quizzes.id'), nullable=False)
+    quiz_id = Column(String, ForeignKey('quizzes.id', ondelete='CASCADE'), nullable=False)  # <-- Itt is ondelete='CASCADE'
     question_text = Column(Text, nullable=False)
     correct_answer = Column(String, nullable=False)
+
 
 class Answer(Base):
     __tablename__ = 'answers'
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    question_id = Column(String, ForeignKey('questions.id'), nullable=False)
+    question_id = Column(String, ForeignKey('questions.id', ondelete='CASCADE'), nullable=False)  # <-- ondelete='CASCADE' itt is
     answer_text = Column(String, nullable=False)
     is_correct = Column(Boolean, nullable=False)
+
 
 class QuizResult(Base):
     __tablename__ = 'quiz_results'
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    quiz_id = Column(String, ForeignKey('quizzes.id'), nullable=False)
+    quiz_id = Column(String, ForeignKey('quizzes.id', ondelete='CASCADE'), nullable=False)  # <-- és itt is ondelete='CASCADE'
     user_id = Column(String, ForeignKey('users.id'), nullable=False)
     score = Column(Integer, nullable=False)
     completed_at = Column(DateTime, default=datetime.utcnow)
+
 
 
 class VerificationRun(Base):
