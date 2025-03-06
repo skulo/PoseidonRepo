@@ -347,7 +347,8 @@ def sanitize_filename(filename: str) -> str:
     # Ha nincs kiterjesztés, nem kell pont
     return f"{name}.{ext}" if ext else name
 
-s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
+FILES_DIR = "files"
+os.makedirs(FILES_DIR, exist_ok=True)
 
 @app.post("/upload/")
 async def upload_file(
@@ -361,10 +362,7 @@ async def upload_file(
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
-    Feltölti a fájlt az S3-ba és elmenti a dokumentum adatait az adatbázisba.
-
-
-    
+    Feltölti a fájlt a lokális tárhelyre és elmenti a dokumentum adatait az adatbázisba.
     """
 
     MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
@@ -381,20 +379,24 @@ async def upload_file(
             "error": str(file_size_in_mb)
         }
     
-
     print(f"Category ID: {category_id}, Uploaded By: {uploaded_by}")
 
     category = db.query(Category).filter(Category.id == category_id).first()
-
     categoryName = category.name
+
+    # Fájlnév készítése
     randomize_it = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
     sanitized_category_name = sanitize_filename(categoryName)
     sanitized_filename = sanitize_filename(file.filename)
-
     filenameNew = f"{randomize_it}_{sanitized_category_name}_{sanitized_filename}"
-    # Fájl feltöltése az S3-ba
-    s3.upload_fileobj(file.file, S3_BUCKET_NAME, filenameNew)
-    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{filenameNew}"
+
+    # Fájl mentése a lokális tárhelyre
+    file_path = os.path.join(FILES_DIR, filenameNew)
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+    
+    # Lokális fájl URL előkészítése
+    file_url = f"/{FILES_DIR}/{filenameNew}"
 
     # Új dokumentum mentése az adatbázisba
     if role == 'user':
@@ -407,6 +409,7 @@ async def upload_file(
             category_id=category_id,
             is_edit=is_edit
         )
+
         db.add(new_document)
         db.commit()
         db.refresh(new_document)
@@ -420,6 +423,7 @@ async def upload_file(
             "uploaded_by": new_document.uploaded_by,
             "uploaded_at": new_document.uploaded_at.isoformat(),
         }
+    
     else:
         new_document = Document(
             title=title,
@@ -429,39 +433,41 @@ async def upload_file(
             status="approved",  
             category_id=category_id,
         )
-        db.add(new_document)
-        db.commit()
-        db.refresh(new_document)
 
-        return {
-            "message": 'File is uploaded successfully.',
-            "file_url": file_url,
-            "document_id": new_document.id,
-            "title": new_document.title,
-            "description": new_document.description,
-            "uploaded_by": new_document.uploaded_by,
-            "uploaded_at": new_document.uploaded_at.isoformat(),
-        }
-    
+    db.add(new_document)
+    db.commit()
+    db.refresh(new_document)
 
+    return {
+        "message": "File is uploaded successfully.",
+        "file_url": file_url,
+        "document_id": new_document.id,
+        "title": new_document.title,
+        "description": new_document.description,
+        "uploaded_by": new_document.uploaded_by,
+        "uploaded_at": new_document.uploaded_at.isoformat(),
+    }
+
+from fastapi import HTTPException, status
+import os
 
 @app.delete("/delete/{filename}")
 async def delete_file(
-    filename: str= "", 
+    filename: str = "", 
     current_user: User = Depends(get_current_user),  # Aktuális felhasználó lekérése
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
-    Törli a fájlt az S3-ból, ha a felhasználó admin, moderátor, vagy a fájl feltöltője.
+    Törli a fájlt a lokális tárhelyről, ha a felhasználó admin, moderátor, vagy a fájl feltöltője.
     """
     print("DEBUG: Deleting file...")
     try:
         # Dokumentum adatainak lekérése a filename alapján
-        file_path="https://poseidonb.s3.eu-north-1.amazonaws.com/"+filename
+        file_path = f"/{FILES_DIR}/{filename}"
         document = db.query(Document).filter(Document.file_path == file_path).first()
         
         if document is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not founddd.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
         
         # Jogosultságok ellenőrzése
         if current_user.role not in ["admin", "moderator"] and current_user.id != document.uploaded_by:
@@ -470,37 +476,46 @@ async def delete_file(
                 detail="You do not have permission to delete this file."
             )
 
-        # Fájl törlése az S3-ból
-        response = s3.delete_object(Bucket=S3_BUCKET_NAME, Key=filename)
-        print(f"DEBUG: S3 delete response: {response}")
+        # Fájl törlése a lokális tárhelyről
+        actual_file_path = os.path.join(FILES_DIR, filename)
+        if os.path.isfile(actual_file_path):
+            os.remove(actual_file_path)
+            print(f"DEBUG: File {filename} deleted from local storage.")
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on local storage.")
+        
+        # Dokumentum törlése az adatbázisból
         db.delete(document)
         db.commit()
+
         # Válasz visszaadása
         return {"message": f"File {filename} deleted successfully."}
     
     except Exception as e:
         return {"message": f"Error deleting file: {str(e)}"}
 
+
     
 
 
+
+from fastapi.responses import FileResponse
+import os
 
 @app.get("/download/{filename}")
 async def download_file(filename: str):
-    s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
-
-    try:
-        # Fájl lekérése az S3-ból
-        file_obj = s3.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
-        
-        # Fájl tartalmának betöltése
-        file_content = file_obj['Body'].read()
-        
-        # Automatikus letöltés (Content-Disposition header)
-        return StreamingResponse(BytesIO(file_content), media_type="application/octet-stream", headers={"Content-Disposition": f"attachment; filename={filename}"})
+    file_path = os.path.join(FILES_DIR, filename)
     
-    except Exception as e:
-        return {"error": str(e)}
+    if os.path.isfile(file_path):
+        # Fájl letöltése FileResponse segítségével
+        return FileResponse(
+            path=file_path,
+            media_type="application/octet-stream",
+            filename=filename
+        )
+    else:
+        return {"error": "File not found"}
+
     
 
 @app.get("/me", response_model=UserResponse)
@@ -1723,9 +1738,14 @@ async def generate_quiz_from_s3(
     db.commit()
 
 
-    s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
-    file_obj = s3.get_object(Bucket=S3_BUCKET_NAME, Key=filename)
-    file_content = file_obj['Body'].read()
+    file_path = os.path.join(FILES_DIR, filename)
+    if not os.path.isfile(file_path):
+        return JSONResponse(content={"message": "Fájl nem található"}, status_code=404)
+
+    # Fájl olvasása
+    with open(file_path, 'rb') as f:
+        file_content = f.read()
+
     file_extension = filename.split('.')[-1].lower()
     extracted_text = ""
 
