@@ -199,7 +199,7 @@ async function loadDocuments(categoryId = null) {
 
             // Kvízgomb eseménykezelője
 
-            const allowedExtensions = ['docx', 'pdf', 'ppt', 'txt'];
+            const allowedExtensions = ['docx', 'pdf', 'ppt', 'txt', 'pptx'];
             const fileExtension = doc.file_name.split('.').pop().toLowerCase();
             if (allowedExtensions.includes(fileExtension)) {
             const quizButton = document.createElement('button');
@@ -565,7 +565,7 @@ async function loadDocuments(categoryId = null) {
 
             // Kvízgomb eseménykezelője
 
-            const allowedExtensions = ['docx', 'pdf', 'ppt', 'txt'];
+            const allowedExtensions = ['docx', 'pdf', 'ppt', 'txt', 'pptx'];
             const fileExtension = doc.file_name.split('.').pop().toLowerCase();
             if (allowedExtensions.includes(fileExtension)) {
             const quizButton = document.createElement('button');
