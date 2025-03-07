@@ -1,3 +1,5 @@
+import os
+import boto3
 
 class FileManager:
     def __init__(self):
@@ -17,7 +19,7 @@ class FileManager:
         else:
             self.is_local_storage = True
     
-    def save_file(self, filename:str, file):
+    async def save_file(self, filename:str, file):
         
         if self.is_local_storage:
             file_path = os.path.join(self.files_dir, filename)
