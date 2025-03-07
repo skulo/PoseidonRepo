@@ -31,6 +31,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from urllib.parse import quote
 
+from file_manager import FileManager
+
 from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI, HTTPException
@@ -50,16 +52,8 @@ import boto3
 from io import BytesIO
 import uuid
 
-#from dotenv import load_dotenv
 
-#load_dotenv()
-
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_REGION_NAME = os.getenv('AWS_REGION_NAME')
-S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME')
-
-
+FILE_MANAGER = FileManager()
 
 
 class Book(BaseModel):
@@ -347,7 +341,6 @@ def sanitize_filename(filename: str) -> str:
     # Ha nincs kiterjesztés, nem kell pont
     return f"{name}.{ext}" if ext else name
 
-s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, region_name=AWS_REGION_NAME)
 
 @app.post("/upload/")
 async def upload_file(
@@ -393,8 +386,10 @@ async def upload_file(
 
     filenameNew = f"{randomize_it}_{sanitized_category_name}_{sanitized_filename}"
     # Fájl feltöltése az S3-ba
-    s3.upload_fileobj(file.file, S3_BUCKET_NAME, filenameNew)
-    file_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{filenameNew}"
+    file_url = FILE_MANAGER.save_file(filenameNew)
+    
+    #s3.upload_fileobj(file.file, S3_BUCKET_NAME, filenameNew)
+    #file url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION_NAME}.amazonaws.com/{filenameNew}"
 
     # Új dokumentum mentése az adatbázisba
     if role == 'user':
