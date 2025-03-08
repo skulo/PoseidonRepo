@@ -312,7 +312,7 @@ class VerificationRunDuplicate(Base):
 
 
 # Database connection setup
-DATABASE_URL = "postgresql://postgres:postgres@localhost:9001/poseidon"
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/poseidon"
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)

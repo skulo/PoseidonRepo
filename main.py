@@ -54,6 +54,7 @@ import uuid
 
 
 FILE_MANAGER = FileManager()
+load_dotenv() 
 
 
 class Book(BaseModel):
@@ -1628,7 +1629,6 @@ def find_closest_word(word, word_list):
     closest_matches = difflib.get_close_matches(word, word_list, n=1)
     return closest_matches[0] if closest_matches else word
 
-load_dotenv() 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class QuizRequest(BaseModel):
