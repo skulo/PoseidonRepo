@@ -319,7 +319,7 @@ async def get_users(db: Session = Depends(get_db)):
 # Alap oldal
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    return open("static/index.html").read()
+    return open("trending/trending.html").read()
 
 
 def sanitize_filename(filename: str) -> str:
