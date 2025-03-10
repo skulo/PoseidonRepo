@@ -106,7 +106,7 @@ async function getUserData() {
 
   try {
       // Felhasználói adatok lekérése
-      const response = await fetch('http://127.0.0.1:8000/me', {
+      const response = await fetch('/me', {
           method: 'GET',
           headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -117,10 +117,10 @@ async function getUserData() {
       document.getElementById('userRole').innerText = userData.role;
 
       // Pending dokumentumok lekérése
-      const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+      const pendingResponse = await fetch(`/pendingdocs/${userData.id}`);
       const pendingCount = await pendingResponse.json();
 
-      const userTokenResponse = await fetch(`http://127.0.0.1:8000/usertokens/${userData.id}`);
+      const userTokenResponse = await fetch(`/usertokens/${userData.id}`);
       const userTokenCount = await userTokenResponse.json();
 
       document.getElementById('userTokens').innerText = userTokenCount.tokens;

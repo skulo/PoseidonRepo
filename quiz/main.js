@@ -101,14 +101,14 @@ loadQuiz();
     
         try {
             // Felhasználói adatok lekérése
-            const response = await fetch('http://127.0.0.1:8000/me', {
+            const response = await fetch('/me', {
                 method: 'GET',
                 headers: { 'Authorization': 'Bearer ' + token }
             });
     
             const userData = await response.json();
             // Pending dokumentumok lekérése
-            const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+            const pendingResponse = await fetch(`/pendingdocs/${userData.id}`);
             const pendingCount = await pendingResponse.json();
     
             return userData;

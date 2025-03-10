@@ -38,7 +38,7 @@ form.addEventListener('submit', async (e) => {
   
       try {
           // Itt várjuk meg a fetch válaszát
-          const response = await fetch('http://127.0.0.1:8000/token', {
+          const response = await fetch('/token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({ username: email, password })
@@ -116,7 +116,7 @@ async function getSignupFormErrors(firstname, email, password, repeatPassword){
     const loader = document.getElementById('loader-container');
     loader.style.setProperty('display', 'flex', 'important');
   const name = firstname;
-  const response = await fetch('http://127.0.0.1:8000/users/', {
+  const response = await fetch('/users/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })
@@ -189,7 +189,7 @@ async function registerUser() {
   const email = document.getElementById('login_email').value;
   const password = document.getElementById('login_password').value;
   
-  const response = await fetch('http://127.0.0.1:8000/users/', {
+  const response = await fetch('/users/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })
@@ -226,7 +226,7 @@ async function verifyCode() {
       return;
   }
 
-  const response = await fetch('http://127.0.0.1:8000/confirm?' + new URLSearchParams({
+  const response = await fetch('/confirm?' + new URLSearchParams({
       entity_type: 'user',
       entity_id: entityId,
       verification_process: 'EMAIL',
@@ -269,7 +269,7 @@ async function resendVerificationCode() {
   try {
     const loader = document.getElementById('loader-container');
     loader.style.setProperty('display', 'flex', 'important');
-    const response = await fetch('http://127.0.0.1:8000/resend?' + new URLSearchParams({
+    const response = await fetch('/resend?' + new URLSearchParams({
       entity_type: 'user',
       entity_id: entityId,
       verification_process: 'EMAIL'
@@ -324,7 +324,7 @@ async function loginUser() {
   const email = document.getElementById('login_email').value;
   const password = document.getElementById('login_password').value;
   
-  const response = await fetch('http://127.0.0.1:8000/token', {
+  const response = await fetch('/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ username: email, password })
@@ -359,7 +359,7 @@ async function getUserData() {
       return;
   }
   
-  const response = await fetch('http://127.0.0.1:8000/me', {
+  const response = await fetch('/me', {
       method: 'GET',
       headers: { 'Authorization': 'Bearer ' + token }
   });
@@ -368,7 +368,7 @@ async function getUserData() {
 }
 
 window.addEventListener('load', async () => {
-  await fetch('http://127.0.0.1:8000/expire_ongoing_verification_runs', { method: 'POST' });
+  await fetch('/expire_ongoing_verification_runs', { method: 'POST' });
 });
 
 
@@ -380,7 +380,7 @@ async function updateVerificationUI() {
   const entityId = localStorage.getItem('verification_entity_id');
   if (!email || !entityId) return;
 
-  const response = await fetch('http://127.0.0.1:8000/is_verified?' + new URLSearchParams({
+  const response = await fetch('/is_verified?' + new URLSearchParams({
     entity_id: entityId
   }));
   const data = await response.json();
@@ -436,7 +436,7 @@ async function startNewVerification() {
   const loader = document.getElementById('loader-container');
   loader.style.setProperty('display', 'flex', 'important');
 
-  const response = await fetch('http://127.0.0.1:8000/start_verification?' + new URLSearchParams({
+  const response = await fetch('/start_verification?' + new URLSearchParams({
     entity_id: entityId
 }), {
     method: 'POST'
@@ -458,7 +458,7 @@ async function getUserData() {
 
   try {
       // Felhasználói adatok lekérése
-      const response = await fetch('http://127.0.0.1:8000/me', {
+      const response = await fetch('/me', {
           method: 'GET',
           headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -469,10 +469,10 @@ async function getUserData() {
       document.getElementById('userRole').innerText = userData.role;
 
       // Pending dokumentumok lekérése
-      const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+      const pendingResponse = await fetch(`/pendingdocs/${userData.id}`);
       const pendingCount = await pendingResponse.json();
 
-      const userTokenResponse = await fetch(`http://127.0.0.1:8000/usertokens/${userData.id}`);
+      const userTokenResponse = await fetch(`/usertokens/${userData.id}`);
       const userTokenCount = await userTokenResponse.json();
 
       document.getElementById('userTokens').innerText = userTokenCount.tokens;

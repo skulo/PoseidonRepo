@@ -24,7 +24,7 @@ async function loadPendingFiles() {
         alert("Nem sikerült betölteni a függő fájlokat.");
         return;
     }
-    const responseCat = await fetch("http://127.0.0.1:8000/categories");
+    const responseCat = await fetch("/categories");
     const categories = await responseCat.json();
 
     const files = await response.json();
@@ -167,7 +167,7 @@ async function approveFile(fileId) {
 
 
 
-    const responsee = await fetch('http://127.0.0.1:8000/me', {
+    const responsee = await fetch('/me', {
         method: 'GET',
         headers: { 'Authorization': 'Bearer ' + token }
     });
@@ -189,7 +189,7 @@ async function approveFile(fileId) {
     const fileTitle = dataUser.title;
     const username = dataUser.usrname;
 
-    const emailResponse = await fetch(`http://127.0.0.1:8000/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&username=${username}&decision=approved&fileId=${fileId}`, {
+    const emailResponse = await fetch(`/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&username=${username}&decision=approved&fileId=${fileId}`, {
         method: 'GET'
     });
 
@@ -230,7 +230,7 @@ async function rejectFile(fileId, reason) {
         alert("Hiba történt az elutasítás során.");
     }
 
-    const responsee = await fetch('http://127.0.0.1:8000/me', {
+    const responsee = await fetch('/me', {
         method: 'GET',
         headers: { 'Authorization': 'Bearer ' + token }
     });
@@ -253,7 +253,7 @@ async function rejectFile(fileId, reason) {
     const delete_url = dataUser.delete_url;
     const username = dataUser.usrname;
 
-    const emailResponse = await fetch(`http://127.0.0.1:8000/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&username=${username}&decision=rejected&fileId=${fileId}&rejection_reason=${reason}`, {
+    const emailResponse = await fetch(`/email/decision?recipient_email=${receiver}&title=${fileTitle}&sender=${sender}&username=${username}&decision=rejected&fileId=${fileId}&rejection_reason=${reason}`, {
         method: 'GET'
     });
 
@@ -293,7 +293,7 @@ if (!token) {
 }
     }
 
-const response = await fetch('http://127.0.0.1:8000/me', {
+const response = await fetch('/me', {
     method: 'GET',
     headers: { 'Authorization': 'Bearer ' + token }
 });
@@ -306,7 +306,7 @@ async function getUserData() {
 
     try {
         // Felhasználói adatok lekérése
-        const response = await fetch('http://127.0.0.1:8000/me', {
+        const response = await fetch('/me', {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -317,10 +317,10 @@ async function getUserData() {
         document.getElementById('userRole').innerText = userData.role;
 
         // Pending dokumentumok lekérése
-        const pendingResponse = await fetch(`http://127.0.0.1:8000/pendingdocs/${userData.id}`);
+        const pendingResponse = await fetch(`/pendingdocs/${userData.id}`);
         const pendingCount = await pendingResponse.json();
 
-        const userTokenResponse = await fetch(`http://127.0.0.1:8000/usertokens/${userData.id}`);
+        const userTokenResponse = await fetch(`/usertokens/${userData.id}`);
         const userTokenCount = await userTokenResponse.json();
 
         document.getElementById('userTokens').innerText = userTokenCount.tokens;
@@ -334,7 +334,7 @@ async function getUserData() {
 window.onload =getUserData;
 // Dinamikus kategória betöltés
 async function loadCategories() {
-const response = await fetch('http://127.0.0.1:8000/categories');
+const response = await fetch('/categories');
 const categories = await response.json();
 
 const categoryContainer = document.getElementById('category-container');

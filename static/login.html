@@ -154,7 +154,7 @@
           }
         }
 
-        const response = await fetch("http://127.0.0.1:8000/me", {
+        const response = await fetch("/me", {
           method: "GET",
           headers: { Authorization: "Bearer " + token },
         });
@@ -162,7 +162,7 @@
 
       // Dinamikus kategória betöltés
       async function loadCategories() {
-        const response = await fetch("http://127.0.0.1:8000/categories");
+        const response = await fetch("/categories");
         const categories = await response.json();
 
         const categoryContainer = document.getElementById("category-container");
