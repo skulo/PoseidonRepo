@@ -38,7 +38,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 import boto3
-import textract
 from io import BytesIO
 from deep_translator import GoogleTranslator
 import difflib
