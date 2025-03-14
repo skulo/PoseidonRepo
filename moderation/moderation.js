@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         userDropdown.style.display = 'block';
         loginButton.style.display = 'none';
-        uploadSection.style.display = 'block';
+        uploadSection.style.display = 'none';
         logoutButton.style.display = 'block';
         const user_data = await getUserData();
     

@@ -274,6 +274,10 @@ async function loadDocuments(categoryId = null) {
                     defined inside the event listener will be executed. */
                     submitButton.onclick = async () => {
                         const fileNew = fileInput.files[0];
+                        const files = fileInput.files; // Több fájl esetén
+
+                        const isGroupUpload = document.getElementById('group-upload').checked; // Csoportos feltöltés
+
                         if (!fileNew) {
                             alert('Kérlek válassz fájlt!');
                             return;
@@ -517,7 +521,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         userDropdown.style.display = 'block';
         loginButton.style.display = 'none';
-        uploadSection.style.display = 'block';
+        uploadSection.style.display = 'none';
         logoutButton.style.display = 'block';
         myquizResults.style.display = 'block';
         const user_data = await getUserData();
