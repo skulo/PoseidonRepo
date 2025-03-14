@@ -4,7 +4,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 import uuid
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 Base = declarative_base()
 
 
@@ -311,8 +314,9 @@ class VerificationRunDuplicate(Base):
 
 
 
-# Database connection setup
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/poseidon"
+DATABASE_NUMBER = os.getenv("DATABASE_NUMBER", "")  # Alapértelmezett 5432
+DATABASE_URL = f"postgresql://postgres:postgres@localhost:{DATABASE_NUMBER}/poseidon"
+
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)

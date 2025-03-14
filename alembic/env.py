@@ -7,11 +7,21 @@ from sqlalchemy import pool
 from models import Base
 from alembic import context
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+from dotenv import load_dotenv
 from models import *
+load_dotenv()
+
+
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+DATABASE_NUMBER = os.getenv("DATABASE_NUMBER", "")
+DATABASE_URL = f"postgresql://postgres:postgres@localhost:{DATABASE_NUMBER}/poseidon"
+
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
+
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
