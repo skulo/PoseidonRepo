@@ -50,7 +50,7 @@ form.addEventListener('submit', async (e) => {
           if (data.access_token) {
               localStorage.setItem('token', data.access_token);
               alert('Sikeres bejelentkezés OG!');
-              window.location.href = "/catalog/catalog.html";
+              window.location.href = "/trending/trending.html";
           } 
   
           if (data.status == "not_verified") {
@@ -334,7 +334,7 @@ async function loginUser() {
   if (data.access_token) {
       localStorage.setItem('token', data.access_token);
       //alert('Sikeres bejelentkezés OG!');
-      window.location.href = "/catalog/catalog.html";
+      window.location.href = "/trending/trending.html";
   } if(data.status=="not_verified"){
     localStorage.setItem('verification_email', email);
     localStorage.setItem('verification_entity_id', data.id);

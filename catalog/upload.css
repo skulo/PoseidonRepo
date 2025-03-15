@@ -7,7 +7,7 @@
     max-width: 500px;
     min-height: 435px;
     margin: auto;
-    background-color: white;
+    background-color: rgb(33, 26, 1);
     border-radius: 16px;
     box-shadow: rgba(255, 255, 255, 0.1) 0px 1px 1px 0px inset, rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
 }
@@ -19,20 +19,20 @@
     font-weight: 500;
     font-size: 1.7rem;
     text-transform: uppercase;
-    color: #707EA0;
+    color: #ffffff;
     margin: 0px;
     margin-bottom: 8px;
 }
 .header-section p{
     margin: 5px;
     font-size: 0.95rem;
-    color: #707EA0;
+    color: #ffffff;
 }
 
 .drop-section{
     min-height: 250px;
-    border: 1px dashed #A8B3E3;
-    background-image: linear-gradient(180deg, white, #F1F6FF);
+    border: 2px dashed #ffbb00;
+    background-image: linear-gradient(180deg, rgb(0, 0, 0), #000000);
     margin: 5px 35px 35px 35px;
     border-radius: 12px;
     position: relative;
@@ -48,7 +48,7 @@
 .drop-section div.col:last-child{
     font-size: 40px;
     font-weight: 700;
-    color: #c0cae1;
+    color: #ffbb00;
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -83,20 +83,25 @@
 .drop-section button{
     display: block;
     margin: auto;
-    color: #707EA0;
+    color: #ffbb00;
     margin-bottom: 10px;
 }
 .drop-section button{
-    color: white;
-    background-color: #5874C6;
+    color: rgb(0, 0, 0);
+    background-color: #ffbb00;
     border: none;
     outline: none;
     padding: 7px 20px;
     border-radius: 8px;
     margin-top: 20px;
     cursor: pointer;
-    box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+    box-shadow: rgba(50, 39, 0, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
 }
+
+.drop-section button:hover {
+    background-color: #ffdc6b;
+}
+
 .up-section .col {
     display: flex;
     align-items: center; /* Egy vonalba igazítja az elemeket */
@@ -105,26 +110,31 @@
 
 .file-name-input {
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid #ffffff;
     border-radius: 8px;
     font-size: 14px;
     height: 38px; /* A gomb és a mező azonos magasságú */
     max-width: 200px;
+    outline: 2px solid #ffbb00; /* Sárga fókuszkeret */
+    outline-offset: 2px; /* Kicsit távolabb helyezi a keretet a mezőtől */
 }
-
+.file-name-input:focus {
+    border-color: #ffdc6b; /* Ha szeretnéd a border színét is módosítani */
+    outline-color: #ffdc6b;
+}
 .grouped-label {
     display: flex;
     align-items: center;
     gap: 5px; /* Kis távolság a checkbox és a szöveg között */
     font-size: 14px;
     cursor: pointer;
-    color: #888888; 
+    color: #ffffff; 
 }
 
 .grouped-checkbox {
     width: 18px;
     height: 18px;
-    accent-color: #5874C6; /* A checkbox színének beállítása */
+    accent-color: #ffbb00; /* A checkbox színének beállítása */
 }
 
 .grouped-text {
@@ -133,8 +143,8 @@
 }
 
 .upload-b {
-    color: white;
-    background-color: #5874C6;
+    color: rgb(0, 0, 0);
+    background-color: #ffbb00;
     border: none;
     outline: none;
     padding: 8px 20px;
@@ -146,6 +156,10 @@
     justify-content: center;
     box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, 
                 rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+}
+
+.upload-b:hover {
+    background-color: #ffdc6b;
 }
 
 .drop-section input{
@@ -160,7 +174,7 @@
 }
 .list-section .list-title{
     font-size: 0.95rem;
-    color: #707EA0;
+    color: #ffffff;
 }
 .list-section li{
     display: flex;
@@ -171,7 +185,7 @@
     transition-duration: 0.2s;
 }
 .list-section li:hover{
-    box-shadow: #E3EAF9 0px 0px 4px 0px, #E3EAF9 0px 12px 16px 0px;
+    box-shadow: #ffbb00 0px 0px 4px 0px, #ffbb00 0px 12px 16px 0px;
 }
 .list-section li .col{
     flex: .1;
@@ -184,7 +198,7 @@
     flex: .75;
     text-align: left;
     font-size: 0.9rem;
-    color: #3e4046;
+    color: #ffffff;
     padding: 8px 10px;
 }
 .list-section li .col:nth-child(2) div.name{
@@ -195,7 +209,7 @@
     display: inline-block;
 }
 .list-section li .col .file-name span{
-    color: #707EA0;
+    color: #ffffff;
     float: right;
 }
 .list-section li .file-progress{
@@ -210,17 +224,17 @@
     width: 0%;
     height: 100%;
     border-radius: 8px;
-    background-image: linear-gradient(120deg, #6b99fd, #9385ff);
+    background-image: linear-gradient(120deg, #ffbb00 #ffbb00);
     transition-duration: 0.4s;
 }
 .list-section li .col .file-size{
     font-size: 0.75rem;
     margin-top: 3px;
-    color: #707EA0;
+    color: #ffffff;
 }
 .list-section li .col svg.cross,
 .list-section li .col svg.tick{
-    fill: #8694d2;
+    fill: #ffbb00;
     background-color: #dee6fd;
     position: relative;
     left: 50%;

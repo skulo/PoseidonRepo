@@ -389,7 +389,7 @@ button.edit-button:hover {
 .preloader__logo {
   width: var(--logo-width);
   padding-bottom: 10px;
-  background: url('background.jpg') no-repeat center;
+  background: url('background.png') no-repeat center;
   background-size: 40%;
 }
 
@@ -400,6 +400,60 @@ button.edit-button:hover {
   height: calc(var(--logo-width) + 10px);
   animation: preloader-spin var(--spin-speed) linear infinite;
 }
+
+
+/* A teljes alert konténer, amely középre igazítja az alert üzeneteket */
+.alert-container {
+  position: fixed;
+  top: 20px; /* A képernyő tetejétől való távolság */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999; /* Mindig a legfelső rétegben legyen */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  pointer-events: none; /* Ne akadályozza a háttér kattinthatóságát */
+}
+
+/* Az egyes alert üzenetek */
+.alert {
+  padding: 20px;
+  color: white;
+  opacity: 1;
+  transition: opacity 0.6s ease-in-out;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  font-size: 16px;
+  max-width: 400px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  pointer-events: auto; /* Az alert még kattintható maradjon */
+  text-align: center;
+}
+
+/* Színbeállítások */
+.alert.success { background-color: #04AA6D; }
+.alert.info { background-color: #2196F3; }
+.alert.warning { background-color: #ff9800; }
+.alert.danger { background-color: #f44336; }
+
+/* Bezárás gomb */
+.closebtn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.closebtn:hover {
+  color: black;
+}
+
 
 @keyframes preloader-spin {
   0% {

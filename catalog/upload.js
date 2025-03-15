@@ -118,7 +118,19 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
             });
 
             const data = await response.json();
-            alert(data.message);
+
+            if (data.message === 'ERROR') {
+                alert('File exceeded the maximum size of 5MB. Current size: ' + data.error + 'MB');
+                return;
+            }
+            if (data.message === 'File is uploaded successfully.') {
+                showAlert("success", data.message);
+            }
+            if (data.message === 'File is uploaded successfully, and is waiting for approval.') {
+                showAlert("info", data.message);
+  
+            }
+
         } catch (error) {
             console.error('ZIP létrehozás hiba:', error);
             alert('Nem sikerült a ZIP létrehozása.');
@@ -126,6 +138,16 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
     } else {
         // Egyenkénti feltöltés
         let index = 1;
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+        for (const file of selectedFiles) {
+            if (file.size > MAX_FILE_SIZE) {
+                //alert(`Egy fájl túl nagy! Mérete: ${(file.size / 1024 / 1024).toFixed(2)} MB. A maximális méret 5 MB.`);
+                showAlert("danger", `Egy fájl túl nagy! Mérete: ${(file.size / 1024 / 1024).toFixed(2)} MB. A maximális méret 5 MB.`);
+                return; // Leállítjuk a feltöltési folyamatot
+            }
+
+        }
         for (const file of selectedFiles) {
             const formData = new FormData();
 
@@ -149,6 +171,21 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
                 });
 
                 const data = await response.json();
+
+                if (data.message === 'ERROR') {
+                    alert('File exceeded the maximum size of 5MB. Current size: ' + data.error + 'MB');
+                    return;
+                }
+                if (data.message === 'File is uploaded successfully.') {
+                    showAlert("success", data.message);
+                    
+                }
+                if (data.message === 'File is uploaded successfully, and is waiting for approval.') {
+                    showAlert("info", data.message);
+
+                    //loadDocuments(selectedCategoryId);
+                }
+
                 //alert(data.message);
 
             } catch (error) {
@@ -157,8 +194,12 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
             }
         }
 
-        window.location.reload()
+
+        //window.location.reload()
     }
+    loadDocuments(selectedCategoryId);
+    clearForm();  // Töröljük a feltöltési űrlapot
+    hideListSection(); 
 });
 
 // Feltöltési válaszok kezelése
@@ -176,4 +217,22 @@ function handleUploadResponse(data) {
 // Ikon kiválasztása fájltípus szerint
 function iconSelector(type) {
     return type.includes('pdf') ? 'pdf.png' : type.includes('image') ? 'image.png' : 'file.png';
+}
+
+
+function clearForm() {
+    const fileInput = document.querySelector('.file-selector-input');
+    
+    fileInput.value = '';  // Reseteljük a fájlválasztó inputot
+    selectedFiles = [];    // Kiürítjük a selectedFiles tömböt
+    
+    document.querySelector('.file-name-input').value = '';  // Reseteljük a fájlnév inputot
+    const listSection = document.querySelector('.list');
+    listSection.innerHTML = '';    // Kiürítjük a fájlok listáját
+}
+
+// Elrejtjük a list-section div-et
+function hideListSection() {
+    const listSection = document.querySelector('.list-section');
+    listSection.style.display = 'none';  // Rejtsük el a list-section-t
 }

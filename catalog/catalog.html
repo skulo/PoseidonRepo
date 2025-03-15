@@ -71,11 +71,11 @@
       <button id="upload-button" disabled>Upload</button>
     </div>
 
-    <div class="container">
+    <div id="container" class="container">
       <div class="header-section">
         <h1>Upload Files</h1>
-        <p>Upload files you want to share with your team members.</p>
-        <p>PDF, Images & Videos are allowed.</p>
+        <p>Tölts fel fájlokat a megadott kategóriához</p>
+        <p>Kvízeknél támogatott formátumok: pdf, ppt, docx, txt</p>
       </div>
       <div class="drop-section">
         <div class="col">
@@ -122,6 +122,7 @@
 
     <script src="catalog.js"></script>
     <script src="upload.js"></script>
+    <script src="alerts.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <h2>Felhasználói adatok</h2>
@@ -173,7 +174,9 @@
                   ? "block"
                   : "none";
               e.preventDefault();
-              await loadDocuments(subcategory.id); // Az alábbi kódban ezt a category_id-t használjuk
+
+              window.location.href = `/catalog/catalog.html?selectedCategoryId=${subcategory.id}`;
+              //await loadDocuments(subcategory.id); // Az alábbi kódban ezt a category_id-t használjuk
             };
 
             categoryColumn.appendChild(subcategoryLink);
@@ -183,9 +186,10 @@
         });
       }
 
-      window.onload = loadCategories; // Kategóriák betöltése oldal betöltésekor
+      window.onload = loadCategories;
+      //window.onload = loadDocuments2; // Kategóriák betöltése oldal betöltésekor
 
-      // Dropdown gombra hover eseményfigyelő hozzáadása
+      // Dropdown gombra hover eseményfigyelő hozzáadásas
       document.querySelector(".dropbtn").addEventListener("mouseenter", () => {
         const dropdownContent = document.querySelector(".dropdown-content");
         dropdownContent.style.display = "block"; // Hoverkor megjelenítjük

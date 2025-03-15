@@ -47,20 +47,35 @@ loadQuiz();
   
   const checkAnswer = (e) => {
     let userAnswer = e.target.textContent;
-    if (userAnswer === quizData[questionNumber].correct) {
+    const correctAnswer = quizData[questionNumber].correct;
+  
+    // Ha a válasz helyes
+    if (userAnswer === correctAnswer) {
       score++;
       e.target.classList.add("correct");
     } else {
+      // Ha a válasz helytelen, a gombot 'incorrect'-re állítjuk
       e.target.classList.add("incorrect");
+  
+      // Megkeressük és kiemeljük a helyes választ
+      let allOptions = document.querySelectorAll(".quiz-container .option");
+      allOptions.forEach((o) => {
+        if (o.textContent === correctAnswer) {
+          o.classList.add("correct"); // A helyes válasz kiemelése
+        }
+      });
     }
   
+    // A válasz mentése a helyi tárolóba
     localStorage.setItem(`userAnswer_${questionNumber}`, userAnswer);
   
+    // Az összes válasz gomb letiltása
     let allOptions = document.querySelectorAll(".quiz-container .option");
     allOptions.forEach((o) => {
       o.classList.add("disabled");
     });
   };
+  
   
   const createQuestion = () => {
   
