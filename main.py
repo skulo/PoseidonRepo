@@ -110,6 +110,7 @@ app.mount("/trending", StaticFiles(directory="trending"), name="trending")
 app.mount("/quizzes", StaticFiles(directory="quizzes"), name="quizzes")
 app.mount("/allquizzes", StaticFiles(directory="allquizzes"), name="allquizzes")
 
+
 handler = Mangum(app) 
 # A token generálása
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
