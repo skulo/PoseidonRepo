@@ -76,7 +76,13 @@ function addFileToList(file) {
 }
 
 // Fájlok feltöltése gombnyomásra
+const inputField = document.querySelector('.file-name-input');
 
+inputField.addEventListener('input', () => {
+    if (inputField.value.length > 14) {
+        inputField.value = inputField.value.slice(0, 14); // Levágja a 12 karaktert meghaladó részt
+    }
+});
 
 document.querySelector('.upload-b').addEventListener('click', async () => {
     const token = localStorage.getItem('token');
@@ -89,8 +95,8 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
     const userId = userData.id;
     const role = userData.role;
     const groupedCheckbox = document.querySelector('.grouped-checkbox');
-    const fileName = document.querySelector('.file-name-input').value.trim() || 'untitled';
-    
+    //const fileName = document.querySelector('.file-name-input').value.trim() || 'untitled';
+    const fileName = inputField.value.trim() || 'untitled';
     if (selectedFiles.length === 0) {
         alert('Nincs kiválasztott fájl!');
         return;

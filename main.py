@@ -341,7 +341,7 @@ def sanitize_filename(filename: str) -> str:
 
     # Csak engedélyezett karakterek: betűk, számok, kötőjel és aláhúzás
     name = re.sub(r'[^a-zA-Z0-9_\-]', '_', name)
-
+    name = name[:15]
     # Ha nincs kiterjesztés, nem kell pont
     return f"{name}.{ext}" if ext else name
 
@@ -384,7 +384,7 @@ async def upload_file(
     category = db.query(Category).filter(Category.id == category_id).first()
 
     categoryName = category.name
-    randomize_it = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+    randomize_it = ''.join(random.choices(string.ascii_lowercase + string.digits, k=3))
     sanitized_category_name = sanitize_filename(categoryName)
     sanitized_filename = sanitize_filename(file.filename)
 
@@ -398,7 +398,7 @@ async def upload_file(
     if role == 'user':
         new_document = Document(
             title=title,
-            description=description,
+            description=sanitized_filename,
             file_path=file_url,
             uploaded_by=uploaded_by,
             status="pending",  
@@ -421,7 +421,7 @@ async def upload_file(
     else:
         new_document = Document(
             title=title,
-            description=description,
+            description=sanitized_filename,
             file_path=file_url,
             uploaded_by=uploaded_by,
             status="approved",  
