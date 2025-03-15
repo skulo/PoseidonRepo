@@ -229,18 +229,19 @@ body {
 }
 
 .document-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-start;
-  flex: 0 0 auto; /* Ne vegyen fel extra helyet */
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: flex-start !important;
+  flex: 0 0 auto !important; /* Nem nyúlik meg, fixen marad az alján */
+  margin-top: auto !important; /* Ez biztosítja, hogy mindig legalul legyen */
 }
 
 /* Button styles */
 button {
   padding: 8px 12px;
-  border: none;
+  border: 1px solid black;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 7px;
   font-size: 0.9em;
   transition: 0.2s;
 }
@@ -251,25 +252,69 @@ button.delete-button {
 }
 
 button.delete-button:hover {
-  background-color: #e53935;
+  background-color: #440a09;
+  border: 1px solid #f44336;
+
 }
 
+
+
+button.quiz-button {
+  background-image: url('galaxy.webp');
+  background-size: cover; /* Biztosítja, hogy kitöltse a gombot */
+  background-position: center;
+  cursor: pointer;
+  border: 2px solid #8a15ff;
+  color: white; /* Szövegszín */
+}
+
+button.quiz-button:hover {
+  background-color: #440a09;
+  border: 3px solid #8a15ff;
+
+}
+
+button.cancelButton {
+  background-color: #f44336;
+  color: #fff;
+}
+
+button.cancelButton:hover {
+  background-color: #440a09;
+  border: 1px solid #f44336;
+
+}
+
+
 button.edit-button {
-  background-color: #555;
+  background-color: #000d53;
   color: #fff;
 }
 
 button.edit-button:hover {
-  background-color: #777;
+  background-color: #2d47da;
+  border: 1px solid #000d53;
 }
 
-/* Prevent hover effect on buttons */
-.document-actions button:hover {
-  background-color: inherit !important;
-  color: inherit !important;
+button.submitButton {
+  background-color: #13731a;
+  color: rgb(255, 255, 255) ;
+  border: none;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.3s ease;
+  position: relative;
+}
+
+button.submitButton:hover {
+  background-color: #4bc910; /* Kicsit sötétebb sárga hover effekt */
 }
 
 
+
+/* Ha a gomb fölé viszed a kurzort, a saját hover effektje érvényesüljön */
 
 
 

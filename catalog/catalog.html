@@ -37,9 +37,6 @@
                 <i class="fa fa-caret-down"></i>
               </button>
               <div class="dropdown-content">
-                <div class="header">
-                  <h2>Fájlkategóriák</h2>
-                </div>
                 <div class="row" id="category-container">
                   <!-- A kategóriák és alkategóriák ide fognak betöltődni -->
                 </div>
@@ -103,7 +100,6 @@
             <button class="upload-b">Upload</button>
           </div>
         </div>
-        <br />
         <div class="list-title">Files to upload</div>
         <div class="list"></div>
       </div>
@@ -117,7 +113,17 @@
 
     <section id="documents">
       <h2 id="documents-category-title">Documents</h2>
-      <div id="documents-list"></div>
+      <div id="documents-list">
+        <div class="document-card">
+          <div class="document-title">Document Title</div>
+          <div class="document-description">Document Description</div>
+          <div class="document-actions">
+            <button class="quiz-button">Kvíz</button>
+            <button class="delete-button">Delete</button>
+            <button class="edit-button">Edit</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <script src="catalog.js"></script>

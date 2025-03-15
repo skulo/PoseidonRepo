@@ -149,47 +149,22 @@ body {
   color: #ffbb00; /* Hoverkor a szöveg sárga lesz */
 }
 
-/* Dokumentum lista */
-#documents {
-  padding: 20px;
-}
-
-#documents h2 {
-  color: #faca2a;
-  text-transform: uppercase;
-}
-
-/* Shop gomb */
-.shop-button {
-  background-color: #faca2a;
-  color: black;
-  padding: 10px 20px;
-  text-transform: uppercase;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  margin-top: 20px;
-}
-
-.shop-button:hover {
-  background-color: white;
-}
-
 
 .document-card {
   display: flex;
+  flex-wrap: wrap; /* Tördelés kisebb képernyőkön */
   align-items: center;
   justify-content: space-between;
   background-color: #000;
   padding: 15px 20px;
   margin: 30px auto;
-  min-height: 70px;
   border-radius: 16px;
   border: 1px solid #222;
   color: #fff;
-  width: 70%; /* Not full width */
   transition: background-color 0.3s, color 0.3s;
   cursor: pointer;
+  gap: 20px; /* Gombok és dátumok közti távolság */
+  width: 70%; /* Not full width */
 }
 
 .document-card:hover {
@@ -201,69 +176,59 @@ body {
   color: #000;
 }
 
-/* Ensure horizontal layout */
-.document-card div {
-  display: flex;
-  align-items: center;
-  gap: 55px;
-  flex: 1;
-}
-
 .document-date {
   white-space: nowrap;
+  flex: 1 1 auto; /* Rugalmas szélesség */
+}
+
+.documents-category {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #ffffff;
+  flex: 1 1 auto; /* Rugalmas szélesség */
 }
 
 .document-title {
   font-size: 1.8em;
   font-weight: bold;
   color: #ffbb00;
+  flex: 2 1 auto; /* Rugalmas szélesség */
 }
 
 .document-description {
-  flex: 2;
+  flex: 3 1 auto; /* Kitölti a rendelkezésre álló helyet */
+  min-width: 200px; /* Minimum szélesség a leírásnak */
 }
 
-.document-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  flex: 0 0 auto; /* Ne vegyen fel extra helyet */
-}
-
-/* Button styles */
 button {
   padding: 8px 12px;
-  border: none;
+  border: 1px solid black;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 7px;
   font-size: 0.9em;
   transition: 0.2s;
 }
 
-button.delete-button {
+button.delete-btn {
   background-color: #f44336;
   color: #fff;
 }
 
-button.delete-button:hover {
-  background-color: #e53935;
+button.delete-btn:hover {
+  background-color: #440a09;
+  border: 1px solid #f44336;
+
 }
 
-button.edit-button {
-  background-color: #555;
-  color: #fff;
-}
+@media (max-width: 768px) {
+  .document-card {
+    flex-direction: column; /* Kisebb képernyőkön egymás alá rendezés */
+  }
 
-button.edit-button:hover {
-  background-color: #777;
+  .document-description {
+    min-width: 100%; /* Teljes szélesség kisebb képernyőkön */
+  }
 }
-
-/* Prevent hover effect on buttons */
-.document-actions button:hover {
-  background-color: inherit !important;
-  color: inherit !important;
-}
-
 
 
 

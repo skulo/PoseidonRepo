@@ -191,11 +191,11 @@ async function loadDocuments(categoryId = null) {
             };
 
             // Kvízgomb eseménykezelője
-
+            let quizButton;
             const allowedExtensions = ['docx', 'pdf', 'ppt', 'txt', 'pptx'];
             const fileExtension = doc.file_name.split('.').pop().toLowerCase();
             if (allowedExtensions.includes(fileExtension)) {
-            const quizButton = document.createElement('button');
+            quizButton = document.createElement('button');
             quizButton.innerText = 'Kvíz';
             quizButton.className = 'quiz-button';
             quizButton.onclick = showQuizSettingsModal;
@@ -217,6 +217,7 @@ async function loadDocuments(categoryId = null) {
                 
                 editButton.onclick = async () => {
                     deleteButton.style.display = 'none';
+                    quizButton.style.display = 'none';
                     //downloadButton.style.display = 'none';
                     editButton.style.display = 'none';
 
@@ -244,11 +245,14 @@ async function loadDocuments(categoryId = null) {
                         editButton.insertAdjacentElement('afterend', fileInput); // Gomb után helyezzük be
                     }
                     fileInput.style.display = 'block';
+                    fileInput.style.width = '80px';  // Vagy más kívánt szélesség
+                    fileInput.style.height = '30px'; 
                     fileInput.click();
 
 
                     const cancelButton = document.createElement('button');
                     cancelButton.innerText = 'Cancel';
+                    cancelButton.style.display = 'block';
                     cancelButton.classList.add('cancelButton');
                     docActions.appendChild(cancelButton);
 
@@ -262,6 +266,7 @@ async function loadDocuments(categoryId = null) {
                         fileInput.style.display = 'none';
                         cancelButton.style.display = 'none';
                         submitButton.style.display = 'none';
+                        quizButton.style.display = 'inline-block';
                         deleteButton.style.display = 'inline-block';  // Eredeti gombok vissza
                         //downloadButton.style.display = 'inline-block';
                         editButton.style.display = 'inline-block';
@@ -338,6 +343,7 @@ async function loadDocuments(categoryId = null) {
                     fileInput.style.display = 'none';
                     cancelButton.style.display = 'none';
                     submitButton.style.display = 'none';
+                    quizButton.style.display = 'inline-block';
                     deleteButton.style.display = 'inline-block';  // Eredeti gombok vissza
                     //downloadButton.style.display = 'inline-block';
                     editButton.style.display = 'inline-block';
