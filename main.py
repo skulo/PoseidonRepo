@@ -359,7 +359,9 @@ def sanitize_filename(filename: str) -> str:
 
 
 @app.post("/upload/")
+@limiter.limit("40/day")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...), 
     title: str = Form(""), 
     description: str = Form(""), 
@@ -508,7 +510,7 @@ async def delete_file(
 
 
 @app.get("/download/{filename}")
-@limiter.limit("5/minute")  # Korlátozva van 5 letöltés/perc
+@limiter.limit("5/minute; 50/day")  # Korlátozva van 5 letöltés/perc
 async def download_file(request: Request, filename: str):
     return await FILE_MANAGER.get_file(filename)
     

@@ -101,8 +101,14 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
         alert('Nincs kiválasztott fájl!');
         return;
     }
+    
 
     if (groupedCheckbox.checked) {
+
+        if (selectedFiles.length > 15) {
+            showAlert("danger", 'Maximum 15 fájlt lehet egy ZIP-be csoportosítani.');
+            return;
+        }
         // Csoportosított ZIP-es feltöltés
         const zip = new JSZip();
         selectedFiles.forEach(file => zip.file(file.name, file));
@@ -126,7 +132,7 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
             const data = await response.json();
 
             if (data.message === 'ERROR') {
-                alert('File exceeded the maximum size of 5MB. Current size: ' + data.error + 'MB');
+                showAlert("danger",'File exceeded the maximum size of 5MB. Current size: ' + data.error + 'MB');
                 return;
             }
             if (data.message === 'File is uploaded successfully.') {
@@ -143,6 +149,12 @@ document.querySelector('.upload-b').addEventListener('click', async () => {
         }
     } else {
         // Egyenkénti feltöltés
+
+        if (selectedFiles.length > 5) {
+            showAlert("danger", 'Maximum 5 fájlt lehet egyszerre feltölteni.');
+            return;
+        }
+
         let index = 1;
         const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
