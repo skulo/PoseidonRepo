@@ -398,7 +398,7 @@ async function loadDocuments(categoryId = null) {
                                 method: "POST",
                             });
                 
-                            window.location.href = doc.download_url;
+                            downloadFile(doc.download_url);
                         } catch (error) {
                             console.error("Hiba történt a popularity növelése közben:", error);
                         }
@@ -409,6 +409,35 @@ async function loadDocuments(categoryId = null) {
     });
 }
 
+
+async function downloadFile(downloadUrl) {
+    try {
+        let response = await fetch(downloadUrl);
+
+        if (!response.ok) {
+            let errorData = await response.json();
+            if (errorData.error) {
+                //alert("Letöltési hiba: " + errorData.error);
+                showAlert("danger", "Download "+errorData.error);
+                return;
+            }
+        }
+
+        // Ha nincs hiba, akkor indítjuk a letöltést
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = downloadUrl.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+        alert("Hálózati hiba történt! Próbáld újra később.");
+    }
+}
 
 async function getUserData() {
     const token = localStorage.getItem('token');

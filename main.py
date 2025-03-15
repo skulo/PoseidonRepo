@@ -51,6 +51,11 @@ import boto3
 from io import BytesIO
 import uuid
 
+from fastapi import FastAPI, HTTPException
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 
 FILE_MANAGER = FileManager()
 load_dotenv() 
@@ -87,6 +92,10 @@ app.add_middleware(
     allow_methods=["*"],  # Engedélyez minden metódust
     allow_headers=["*"],  # Engedélyez minden fejlécet
 )
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -229,6 +238,9 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
         base = BaseClass()
 
+        if db_user.role!="user":
+            return {"status": "NOT POSSIBLE"}
+        
         run_duplicate=base.is_run_duplicate(entity_id=db_user.id, verification_process="EMAIL", session=db)
 
         if run_duplicate!="":
@@ -355,6 +367,7 @@ async def upload_file(
     role: str = Form(""), 
     uploaded_by: str = Form(""), 
     is_edit: bool = Form(False), 
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
@@ -363,7 +376,12 @@ async def upload_file(
 
     
     """
-
+    if current_user.role not in ["admin", "moderator", "user"]:
+        return {
+            "message": "ERROR",
+            "error": "You don't have permission to upload files."
+        }
+    
     MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
     # Fájlméret ellenőrzése
@@ -490,7 +508,8 @@ async def delete_file(
 
 
 @app.get("/download/{filename}")
-async def download_file(filename: str):
+@limiter.limit("5/minute")  # Korlátozva van 5 letöltés/perc
+async def download_file(request: Request, filename: str):
     return await FILE_MANAGER.get_file(filename)
     
 
